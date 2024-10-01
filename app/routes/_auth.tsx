@@ -2,8 +2,6 @@ import {Outlet} from "@remix-run/react"
 
 export default function auth() {
     return (
-
-
         <div>
             <header className="sticky top-0 backdrop-blur text-gray-600 body-font">
                 <div className="container mx-auto flex flex-nowrap p-5 flex-col md:flex-row items-center backdrop-blur">
