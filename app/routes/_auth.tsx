@@ -38,7 +38,6 @@ export default function auth() {
             </header>
             <Outlet/>
         </div>
-
     );
 }
 
