@@ -8,8 +8,6 @@ export default function auth() {
             </div>
             <Outlet/>
         </div>
-
-
     );
 }
 

@@ -18,7 +18,7 @@ const  FormComponent: React.FC = () => {
     };
 
     return (
-        <div className="flex justify-center items-center min-h-max ">
+        <div className="flex justify-center items-center min-h-max">
             <form className="w-full max-w-lg font-sans">
                 <div className="flex flex-wrap -mx-3 mb-6">
                     <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
