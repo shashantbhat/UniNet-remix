@@ -1,18 +1,28 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import "app/grad_bg.css"; // Import the gradient background animation CSS
 
 const FormComponent: React.FC = () => {
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        setIsVisible(true); // Trigger the fade-in when component mounts
+    }, []);
+
     return (
         <div className="flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation">
-            {/* Centered Container with White Background  style={{backgroundColor:"#F1F1F1"}} */}
-            <div  className="flex bg-gray-100 bg-opacity-75 rounded-3xl shadow-lg p-8 max-w-6xl w-full">
+            {/* Centered Container with White Background */}
+            <div
+                className={`flex bg-gray-100 bg-opacity-75 rounded-3xl shadow-lg p-8 max-w-6xl w-full transition-opacity duration-1000 ${
+                    isVisible ? 'opacity-100' : 'opacity-0'
+                }`}
+            >
                 {/* Left Side with Logo */}
                 <div className="w-1/2 flex items-center justify-center">
                     <div className="text-center m-10">
                         <img
                             src="public/logo_UniNet_globe.png"
                             alt="Uni-Net Logo"
-                            className="mb-6 max-w-sm mx-auto "
+                            className="mb-6 max-w-sm mx-auto"
                         />
                         <img
                             src="public/logo_UniNet_text.png"

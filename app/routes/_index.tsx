@@ -68,6 +68,7 @@ import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate for navigation
 import HelloText from '~/components/hello';
+import "app/grad_bg.css";
 
 const App: React.FC = () => {
     const helloRef = useRef<HTMLDivElement | null>(null); // Ref for the HelloText container
@@ -104,8 +105,7 @@ const App: React.FC = () => {
     }, [navigate]); // Add navigate to dependency array
 
     return (
-        <div style={{
-            backgroundColor: 'white',
+        <div className="bg-gradient-animation" style={{
             height: '100vh',
             display: 'flex',
             justifyContent: 'center',
@@ -117,7 +117,7 @@ const App: React.FC = () => {
             </div>
 
             <div ref={welcomeRef} className="flex justify-center items-center h-screen  font-mono w-full whitespace-nowrap overflow-hidden" style = {{fontFamily:'cursive',fontSize: '4rem'}}>
-                Welcome to UniNet
+                Welcome to UniNet!
             </div>
         </div>
     );
