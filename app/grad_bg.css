@@ -1,0 +1,20 @@
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.bg-gradient-animation {
+    /*background: linear-gradient(270deg,#ffffff, #dbc4ff,#ffffff ,#b5e2ff,#ffffff);*/
+    /*background: conic-gradient(#c8a6fd,#ffffff ,#7ed0fd);*/
+    /*background:repeating-radial-gradient(#ffffff, #dbc4ff,#ffffff ,#b5e2ff,#ffffff);*/
+    background:repeating-radial-gradient(#b5e2ff,#ffffff , #dbc4ff);
+    background-size: 400% 400%;
+    animation: gradient 10s ease infinite;
+}
