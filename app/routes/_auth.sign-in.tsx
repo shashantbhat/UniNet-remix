@@ -3,9 +3,9 @@ import "app/grad_bg.css"; // Import the gradient background animation CSS
 
 const FormComponent: React.FC = () => {
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gradient-animation">
-            {/* Centered Container with White Background */}
-            <div className="flex bg-white rounded-3xl shadow-lg p-8 max-w-6xl w-full">
+        <div className="flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation">
+            {/* Centered Container with White Background  style={{backgroundColor:"#F1F1F1"}} */}
+            <div  className="flex bg-gray-100 bg-opacity-75 rounded-3xl shadow-lg p-8 max-w-6xl w-full">
                 {/* Left Side with Logo */}
                 <div className="w-1/2 flex items-center justify-center">
                     <div className="text-center m-10">
@@ -26,7 +26,7 @@ const FormComponent: React.FC = () => {
                 <div className="w-1/2 flex items-center justify-center">
                     <div className="w-full max-w-md">
                         <h1 className="text-2xl font-bold text-center block tracking-wide text-gray-700 mb-10">
-                            Welcome to UniNet Login Page
+                            Sign In to Continue to UniNet
                         </h1>
                         <form>
                             <div className="mb-4">
@@ -65,8 +65,13 @@ const FormComponent: React.FC = () => {
                                 </a>
                             </div>
 
-                            <div className="flex justify-end">
-                                <button className="bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition ">
+                            <div className="flex justify-center">
+                                <button
+                                    className="bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition mr-1.5" formAction="sign-up">
+                                    Sign Up
+                                </button>
+                                <button
+                                    className="bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition ml-1.5" >
                                     Sign In
                                 </button>
                             </div>
