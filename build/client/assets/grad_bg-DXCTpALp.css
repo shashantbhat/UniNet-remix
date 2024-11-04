@@ -1,0 +1,1 @@
+@keyframes gradient{0%{background-position:0% 50%}50%{background-position:100% 50%}to{background-position:0% 50%}}.bg-gradient-animation{background:repeating-radial-gradient(#b5e2ff,#fff,#dbc4ff);background-size:400% 400%;animation:gradient 10s ease infinite}

@@ -1,22 +1,55 @@
+//{
+//  "include": [
+//    "**/*.ts",
+//    "**/*.tsx",
+//    "**/.server/**/*.ts",
+//    "**/.server/**/*.tsx",
+//    "**/.client/**/*.ts",
+//    "**/.client/**/*.tsx"
+//  ],
+//  "compilerOptions": {
+//    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+//    "types": ["@remix-run/node", "vite/client"],
+//    "isolatedModules": true,
+//    "esModuleInterop": true,
+//    "jsx": "react-jsx",
+//    "module": "ESNext",
+////    "module": "commonjs",
+//    "moduleResolution": "Bundler",
+//    "resolveJsonModule": true,
+//    "target": "ES2022",
+////    "target": "es6",
+//    "strict": true,
+//    "allowJs": true,
+//    "skipLibCheck": true,
+//    "forceConsistentCasingInFileNames": true,
+//    //new
+////    "typeRoots": ["./node_modules/@types", "./src/types"],
+//    //new
+////    "outDir": "./dist",
+//    "baseUrl": ".",
+//    "paths": {
+//      "~/*": ["./app/*"]
+//    },
+//
+//    // Vite takes care of building everything, not tsc.
+//    "noEmit": true
+//  }
+//}
+
+
+//new for the prisma client
 {
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/.server/**/*.ts",
-    "**/.server/**/*.tsx",
-    "**/.client/**/*.ts",
-    "**/.client/**/*.tsx"
-  ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "types": ["@remix-run/node", "vite/client"],
     "isolatedModules": true,
     "esModuleInterop": true,
     "jsx": "react-jsx",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "module": "ESNext", // Keep this as ESNext to work with modern module systems
+    "moduleResolution": "node",
     "resolveJsonModule": true,
-    "target": "ES2022",
+    "target": "ESNext", // This is fine; using a modern ECMAScript version
     "strict": true,
     "allowJs": true,
     "skipLibCheck": true,
@@ -25,8 +58,18 @@
     "paths": {
       "~/*": ["./app/*"]
     },
-
-    // Vite takes care of building everything, not tsc.
-    "noEmit": true
-  }
+    "noEmit": true, // Vite handles building, no need for TypeScript to emit files
+    "outDir": "./dist"
+  },
+  "include": [
+    "app/**/*",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/.server/**/*.ts",
+    "**/.server/**/*.tsx",
+    "**/.client/**/*.ts",
+    "**/.client/**/*.tsx",
+    "global.d.ts" // Include the global declaration file here
+  ],
+  "exclude": ["node_modules", "dist"]
 }
