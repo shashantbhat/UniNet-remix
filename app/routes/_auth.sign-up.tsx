@@ -1,26 +1,11 @@
-import React, {useState} from "react";
-import { Form, useActionData  } from "@remix-run/react";
-import {ActionFunction, json, redirect} from "@remix-run/node";
-// import { json, unstable_parseMultipartFormData, unstable_createMemoryUploadHandler } from "@remix-run/node";
-// import { db } from "~/utils/db.server";
-// import { register, storage } from "~/utils/auth.server";
-import "~/grad_bg.css";
+import React, { useState } from "react";
+import { Form, useActionData } from "@remix-run/react";
+import { ActionFunction, json, redirect } from "@remix-run/node";
 import bcrypt from "bcrypt";
-import pool from "~/utils/db.server"; // Import the gradient background animation CSS
+import pool from "~/utils/db.server"; // Importing the database connection
+import "~/grad_bg.css";
 
 type ActionData = {
-    data?: {
-        firstName?: string;
-        lastName?: string;
-        collegeName?: string;
-        universityName?: string;
-        universityEmail?: string;
-        enrollmentId?: string;
-        collegeId?: File | Blob;
-        city?: string;
-        state?: string;
-        password?: string;
-    };
     error?: string;
     success?: string;
 };
@@ -64,122 +49,9 @@ export const action: ActionFunction = async ({ request }) => {
     }
 };
 
-//this all code has been done on _auth.sign-in to render the form and and get the form data to be stored into the db
-// export async function action({ request }: ActionFunctionArgs) {
-//     try {
-//         const uploadHandler = unstable_createMemoryUploadHandler({
-//             maxFileSize: 5_000_000,
-//             filter: ({ contentType }) => contentType?.includes('image/') ?? false
-//         });
-//
-//         const formData = await unstable_parseMultipartFormData(request, uploadHandler);
-//
-//         // Get all form fields
-//         const firstName = formData.get("firstName") as string;
-//         const lastName = formData.get("lastName") as string;
-//         const collegeName = formData.get("collegeName") as string;
-//         const universityName = formData.get("universityName") as string;
-//         const enrollmentId = formData.get("enrollmentId") as string;
-//         const city = formData.get("city") as string;
-//         const state = formData.get("state") as string;
-//         const password = formData.get("password") as string;
-//         const collegeIdFile = formData.get("collegeId");
-//
-//         // Validation
-//         // Validation
-//         const errors: ActionData["errors"] = {};
-//
-//         if (!firstName) errors.firstName = "First name is required";
-//         if (!lastName) errors.lastName = "Last name is required";
-//         if (!collegeName) errors.collegeName = "College name is required";
-//         if (!universityName) errors.universityName = "University name is required";
-//         if (!enrollmentId) errors.enrollmentId = "Enrollment ID is required";
-//         if (!city) errors.city = "City is required";
-//         if (!state) errors.state = "State is required";
-//
-//         // Password validation
-//         if (typeof password !== "string" || password.length < 8) {
-//             errors.password = "Password must be at least 8 characters long";
-//         } else if (!/[A-Z]/.test(password)) {
-//             errors.password = "Password must contain at least one uppercase letter";
-//         } else if (!/[a-z]/.test(password)) {
-//             errors.password = "Password must contain at least one lowercase letter";
-//         } else if (!/[0-9]/.test(password)) {
-//             errors.password = "Password must contain at least one number";
-//         } else if (!/[^A-Za-z0-9]/.test(password)) {
-//             errors.password = "Password must contain at least one special character";
-//         }
-//
-//         if (Object.keys(errors).length > 0) {
-//             return json<ActionData>({ errors }, { status: 400 });
-//         }
-//
-//         // Check if user already exists
-//         const existingUser = await db.user.findUnique({
-//             where: { enrollmentId: enrollmentId?.toString() },
-//         });
-//
-//         if (existingUser) {
-//             return json<ActionData>(
-//                 { errors: { enrollmentId: "A user with this enrollment ID already exists" } },
-//                 { status: 400 }
-//             );
-//         }
-//
-//         // Handle college ID file
-//         let collegeIdUrl = null;
-//         if (collegeIdFile instanceof File) {
-//             // In a real application, you would upload this to a storage service
-//             collegeIdUrl = "placeholder-url";
-//         }
-//
-//         // Register the user
-//         const result = await register({
-//             firstName,
-//             lastName,
-//             collegeName,
-//             universityName,
-//             enrollmentId,
-//             collegeIdUrl,
-//             city,
-//             state,
-//             password,
-//         });
-//
-//         if (!result.success) {
-//             return json<ActionData>(
-//                 { errors: { general: result.error } },
-//                 { status: 500 }
-//             );
-//         }
-//
-//         // Get session to set flash message
-//         const session = await storage.getSession();
-//         session.flash("success", "Registration successful! Please sign in.");
-//
-//         // Redirect to sign-in page with success message
-//         return redirect("/sign-in", {
-//             headers: {
-//                 "Set-Cookie": await storage.commitSession(session),
-//             },
-//         });
-//
-//     } catch (error) {
-//         console.error('Error in action:', error);
-//         return json<ActionData>(
-//             { errors: { general: "Error creating account. Please try again." } },
-//             { status: 500 }
-//         );
-//     }
-// }
-
-
-//Remix Form component
-export default function SignUpForm(){
+// Remix Form component
+export default function SignUpForm() {
     const actionData = useActionData();
-    // const navigation = useNavigation();
-    // const isSubmitting = navigation.state === "submitting";
-
     const [preview, setPreview] = useState<string | null>(null);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,11 +64,10 @@ export default function SignUpForm(){
             reader.readAsDataURL(file);
         }
     };
+
     const handleRemoveFile = () => {
         setPreview(null);
     };
-    // Define the handleSubmit function inside your component
-
 
     return (
         <div className="flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation">
@@ -214,7 +85,7 @@ export default function SignUpForm(){
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
                                     name="firstName"
-                                    id = "first-name"
+                                    id="first-name"
                                     type="text"
                                     placeholder="First Name"
                                 />
@@ -228,7 +99,7 @@ export default function SignUpForm(){
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
                                     name="lastName"
-                                    id = "last-name"
+                                    id="last-name"
                                     type="text"
                                     placeholder="Last Name"
                                 />
@@ -384,7 +255,7 @@ export default function SignUpForm(){
 
                                         className="text-sm block appearance-none w-full bg-gray-50 border-gray-200 border py-3 px-4 h-11 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
                                         name="state"
-                                        id = "state"
+                                        id="state"
                                         defaultValue=""
                                     >
                                         <option value="">
@@ -453,7 +324,7 @@ export default function SignUpForm(){
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
                                     name="password"
-                                    id = "password"
+                                    id="password"
                                     type="password"
                                     placeholder="Enter Password"
                                 />

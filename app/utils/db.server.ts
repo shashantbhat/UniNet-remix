@@ -1,12 +1,10 @@
-import pkg from 'pg';
-const { Pool } = pkg;
+import pg from 'pg';
+import dotenv from "dotenv";
 
-const pool = new Pool({
-    user: "shash",
-    host: "localhost",
-    database: "uninet",
-    password: "shash@2004",
-    port: 5432,
+dotenv.config();
+
+const pool = new pg.Pool({
+    connectionString: process.env.DATABASE_URL,
 });
 
 const createTable = async () => {
