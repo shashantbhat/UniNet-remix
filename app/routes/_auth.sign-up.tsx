@@ -1,7 +1,185 @@
 import React, {useState} from "react";
-import "app/grad_bg.css"; // Import the gradient background animation CSS
+import { Form, useActionData  } from "@remix-run/react";
+import {ActionFunction, json, redirect} from "@remix-run/node";
+// import { json, unstable_parseMultipartFormData, unstable_createMemoryUploadHandler } from "@remix-run/node";
+// import { db } from "~/utils/db.server";
+// import { register, storage } from "~/utils/auth.server";
+import "~/grad_bg.css";
+import bcrypt from "bcrypt";
+import pool from "~/utils/db.server"; // Import the gradient background animation CSS
 
-const FormComponent: React.FC = () => {
+type ActionData = {
+    data?: {
+        firstName?: string;
+        lastName?: string;
+        collegeName?: string;
+        universityName?: string;
+        universityEmail?: string;
+        enrollmentId?: string;
+        collegeId?: File | Blob;
+        city?: string;
+        state?: string;
+        password?: string;
+    };
+    error?: string;
+    success?: string;
+};
+
+export const action: ActionFunction = async ({ request }) => {
+    const formData = await request.formData();
+
+    const firstName = formData.get("firstName") as string;
+    const lastName = formData.get("lastName") as string;
+    const collegeName = formData.get("collegeName") as string;
+    const universityName = formData.get("universityName") as string;
+    const universityEmail = formData.get("universityEmail") as string;
+    const enrollmentId = formData.get("enrollmentId") as string;
+    const collegeId = formData.get("collegeId") as File | Blob;
+    const city = formData.get("city") as string;
+    const state = formData.get("state") as string;
+    const password = formData.get("password") as string;
+
+    // Hash the password before storing it
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Convert the collegeId Blob to binary data (Buffer)
+    const collegeIdBuffer = collegeId instanceof Blob ? Buffer.from(await collegeId.arrayBuffer()) : null;
+
+    try {
+        const result = await pool.query(
+            `INSERT INTO users (
+                first_name, last_name, college_name, university_name, university_email, enrollment_id, college_id, city, state, password
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING id, university_email`,
+            [firstName, lastName, collegeName, universityName, universityEmail, enrollmentId, collegeIdBuffer, city, state, hashedPassword]
+        );
+
+        console.log("result", result);
+        return redirect("/sign-in");
+
+    } catch (error) {
+        console.error("Error inserting user data:", error);
+        return json<ActionData>({ error: "There was an issue creating your account." });
+    }
+};
+
+//this all code has been done on _auth.sign-in to render the form and and get the form data to be stored into the db
+// export async function action({ request }: ActionFunctionArgs) {
+//     try {
+//         const uploadHandler = unstable_createMemoryUploadHandler({
+//             maxFileSize: 5_000_000,
+//             filter: ({ contentType }) => contentType?.includes('image/') ?? false
+//         });
+//
+//         const formData = await unstable_parseMultipartFormData(request, uploadHandler);
+//
+//         // Get all form fields
+//         const firstName = formData.get("firstName") as string;
+//         const lastName = formData.get("lastName") as string;
+//         const collegeName = formData.get("collegeName") as string;
+//         const universityName = formData.get("universityName") as string;
+//         const enrollmentId = formData.get("enrollmentId") as string;
+//         const city = formData.get("city") as string;
+//         const state = formData.get("state") as string;
+//         const password = formData.get("password") as string;
+//         const collegeIdFile = formData.get("collegeId");
+//
+//         // Validation
+//         // Validation
+//         const errors: ActionData["errors"] = {};
+//
+//         if (!firstName) errors.firstName = "First name is required";
+//         if (!lastName) errors.lastName = "Last name is required";
+//         if (!collegeName) errors.collegeName = "College name is required";
+//         if (!universityName) errors.universityName = "University name is required";
+//         if (!enrollmentId) errors.enrollmentId = "Enrollment ID is required";
+//         if (!city) errors.city = "City is required";
+//         if (!state) errors.state = "State is required";
+//
+//         // Password validation
+//         if (typeof password !== "string" || password.length < 8) {
+//             errors.password = "Password must be at least 8 characters long";
+//         } else if (!/[A-Z]/.test(password)) {
+//             errors.password = "Password must contain at least one uppercase letter";
+//         } else if (!/[a-z]/.test(password)) {
+//             errors.password = "Password must contain at least one lowercase letter";
+//         } else if (!/[0-9]/.test(password)) {
+//             errors.password = "Password must contain at least one number";
+//         } else if (!/[^A-Za-z0-9]/.test(password)) {
+//             errors.password = "Password must contain at least one special character";
+//         }
+//
+//         if (Object.keys(errors).length > 0) {
+//             return json<ActionData>({ errors }, { status: 400 });
+//         }
+//
+//         // Check if user already exists
+//         const existingUser = await db.user.findUnique({
+//             where: { enrollmentId: enrollmentId?.toString() },
+//         });
+//
+//         if (existingUser) {
+//             return json<ActionData>(
+//                 { errors: { enrollmentId: "A user with this enrollment ID already exists" } },
+//                 { status: 400 }
+//             );
+//         }
+//
+//         // Handle college ID file
+//         let collegeIdUrl = null;
+//         if (collegeIdFile instanceof File) {
+//             // In a real application, you would upload this to a storage service
+//             collegeIdUrl = "placeholder-url";
+//         }
+//
+//         // Register the user
+//         const result = await register({
+//             firstName,
+//             lastName,
+//             collegeName,
+//             universityName,
+//             enrollmentId,
+//             collegeIdUrl,
+//             city,
+//             state,
+//             password,
+//         });
+//
+//         if (!result.success) {
+//             return json<ActionData>(
+//                 { errors: { general: result.error } },
+//                 { status: 500 }
+//             );
+//         }
+//
+//         // Get session to set flash message
+//         const session = await storage.getSession();
+//         session.flash("success", "Registration successful! Please sign in.");
+//
+//         // Redirect to sign-in page with success message
+//         return redirect("/sign-in", {
+//             headers: {
+//                 "Set-Cookie": await storage.commitSession(session),
+//             },
+//         });
+//
+//     } catch (error) {
+//         console.error('Error in action:', error);
+//         return json<ActionData>(
+//             { errors: { general: "Error creating account. Please try again." } },
+//             { status: 500 }
+//         );
+//     }
+// }
+
+
+//Remix Form component
+export default function SignUpForm(){
+    const actionData = useActionData();
+    // const navigation = useNavigation();
+    // const isSubmitting = navigation.state === "submitting";
+
     const [preview, setPreview] = useState<string | null>(null);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,23 +195,26 @@ const FormComponent: React.FC = () => {
     const handleRemoveFile = () => {
         setPreview(null);
     };
+    // Define the handleSubmit function inside your component
+
 
     return (
         <div className="flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation">
             {/* Centered Container with White Background  style={{backgroundColor:"#F1F1F1"}} */}
             <div className="flex bg-gray-100 bg-opacity-80 rounded-3xl shadow-lg p-8 max-w-xl w-full">
                 <div className="flex justify-center p-10">
-                    <form className="w-full max-w-lg font-sans">
+                    <Form encType="multipart/form-data" method="post" className="w-full max-w-lg font-sans">
                         <div className="flex flex-wrap -mx-3 mb-6">
                             <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
                                 <label
                                     className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-                                    htmlFor="first-name">
+                                    htmlFor="firstName">
                                     First Name
                                 </label>
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
-                                    id="first-name"
+                                    name="firstName"
+                                    id = "first-name"
                                     type="text"
                                     placeholder="First Name"
                                 />
@@ -41,12 +222,13 @@ const FormComponent: React.FC = () => {
                             <div className="w-full md:w-1/2 px-3">
                                 <label
                                     className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-                                    htmlFor="last-name">
+                                    htmlFor="lastName">
                                     Last Name
                                 </label>
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
-                                    id="last-name"
+                                    name="lastName"
+                                    id = "last-name"
                                     type="text"
                                     placeholder="Last Name"
                                 />
@@ -56,11 +238,13 @@ const FormComponent: React.FC = () => {
                             <div className="w-full px-3">
                                 <label
                                     className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-                                    htmlFor="password">
+                                    htmlFor="instituteDetails">
                                     Institute Details
                                 </label>
+
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
+                                    name="collegeName"
                                     id="college-name"
                                     type="text"
                                     placeholder="Enter College Name"
@@ -68,81 +252,108 @@ const FormComponent: React.FC = () => {
 
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
+                                    name="universityName"
                                     id="university-name"
                                     type="text"
                                     placeholder="Enter University Name"
                                 />
 
+                                <input
+                                    className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
+                                    name="universityEmail"
+                                    id="university-email"
+                                    type="text"
+                                    placeholder="Enter University Email ID"
+                                />
+
 
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
-                                    id="enrollement-id"
+                                    name="enrollmentId"
+                                    id="enrollment-id"
                                     type="text"
                                     placeholder="Enter Enrollement ID"
                                 />
+                            </div>
+                        </div>
 
+                        <div className="mb-6">
+                            <label
+                                className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
+                                htmlFor="collegeId">
+                                College ID
+                            </label>
+                            <div className="flex flex-col items-center justify-center w-full">
                                 <label
-                                    className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-                                    htmlFor="password">
-                                    College ID
-                                </label>
-                                <div className="flex flex-col items-center justify-center w-full">
-                                    <label
-                                        htmlFor="dropzone-file"
-                                        className="h-28 flex flex-col items-center justify-center w-full border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50  hover:bg-gray-100"
-                                    >
-                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <svg
-                                                className="w-8 h-8 mb-4 text-gray-500"
-                                                aria-hidden="true"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 20 16"
-                                            >
-                                                <path
-                                                    stroke="currentColor"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth="2"
-                                                    d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
-                                                />
-                                            </svg>
-                                            <p className="mb-2 text-sm text-gray-500">
-                                                <span className="font-semibold">Click to upload</span> or drag and
-                                                drop
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                                SVG, PNG, JPG or GIF (MAX. 800x400px)
-                                            </p>
-                                        </div>
-                                        <input
-                                            id="dropzone-file"
-                                            type="file"
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={handleFileChange}
-                                        />
-                                    </label>
+                                    htmlFor="dropzone-file"
+                                    className="h-28 flex flex-col items-center justify-center w-full border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50  hover:bg-gray-100"
+                                >
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <svg
+                                            className="w-8 h-8 mb-4 text-gray-500"
+                                            aria-hidden="true"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="none"
+                                            viewBox="0 0 20 16"
+                                        >
+                                            <path
+                                                stroke="currentColor"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth="2"
+                                                d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                                            />
+                                        </svg>
+                                        <p className="mb-2 text-sm text-gray-500">
+                                            <span className="font-semibold">Click to upload</span> or drag and
+                                            drop
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                            SVG, PNG, JPG or GIF (MAX. 800x400px)
+                                        </p>
+                                    </div>
+                                    <input
+                                        id="dropzone-file"
+                                        name="collegeId"
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                    />
 
-                                    {/* Display the uploaded image preview */}
-                                    {preview && (
-                                        <div className="mt-4">
+                                </label>
+                            </div>
+
+
+                            {/*<div className="flex justify-center">*/}
+                            {/*    <button type="submit"*/}
+                            {/*            className="bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition my-3">*/}
+                            {/*        Upload*/}
+                            {/*    </button>*/}
+                            {/*</div>*/}
+
+                            <div className="flex justify-center">
+                                {/* Display the uploaded image preview */}
+                                {preview && (
+                                    <div className="mt-4">
+                                        <div className="flex justify-center">
                                             <img
                                                 src={preview}
                                                 alt="Uploaded Preview"
                                                 className="h-32 w-auto object-contain rounded-md border"
                                             />
+                                        </div>
+                                        <div className="flex justify-center">
                                             <button
                                                 type="button"
-                                                className="mt-2 px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600"
+                                                className="mt-2 px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600 my-3"
                                                 onClick={handleRemoveFile}
                                             >
                                                 Remove File
                                             </button>
                                         </div>
-                                    )}
-                                </div>
-
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -155,6 +366,7 @@ const FormComponent: React.FC = () => {
                                 </label>
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-11 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
+                                    name="city"
                                     id="city"
                                     type="text"
                                     placeholder="Your City"
@@ -171,7 +383,8 @@ const FormComponent: React.FC = () => {
                                     <select
 
                                         className="text-sm block appearance-none w-full bg-gray-50 border-gray-200 border py-3 px-4 h-11 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
-                                        id="state"
+                                        name="state"
+                                        id = "state"
                                         defaultValue=""
                                     >
                                         <option value="">
@@ -239,7 +452,8 @@ const FormComponent: React.FC = () => {
                                 </label>
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
-                                    id="password"
+                                    name="password"
+                                    id = "password"
                                     type="password"
                                     placeholder="Enter Password"
                                 />
@@ -252,15 +466,21 @@ const FormComponent: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex justify-center">
-                            <button className="bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition" formAction="sign-in">
+                            <button type="submit"
+                                    className="bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition"
+                            >
                                 Submit & Sign In
                             </button>
+                            {actionData?.error && (
+                                <p className="text-red-500 text-sm mt-2">{actionData.error}</p>
+                            )}
+                            {actionData?.success && (
+                                <p className="text-green-500 text-sm mt-2">{actionData.success}</p>
+                            )}
                         </div>
-                    </form>
+                    </Form>
                 </div>
             </div>
         </div>
     );
-};
-
-export default FormComponent;
+}
