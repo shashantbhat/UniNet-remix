@@ -4,6 +4,7 @@ import { ActionFunction, json, redirect } from "@remix-run/node";
 import bcrypt from "bcrypt";
 import pool from "~/utils/db.server"; // Importing the database connection
 import "~/grad_bg.css";
+import { nanoid } from 'nanoid';
 
 type ActionData = {
     error?: string;
@@ -17,11 +18,11 @@ export const action: ActionFunction = async ({ request }) => {
     const firstName = formData.get("firstName") as string;
     const lastName = formData.get("lastName") as string;
     const collegeName = formData.get("collegeName") as string;
-    const universityName = formData.get("universityName") as string;
+    // const universityName = formData.get("universityName") as string;
     const universityEmail = formData.get("universityEmail") as string;
-    const enrollmentId = formData.get("enrollmentId") as string;
-    const collegeId = formData.get("collegeId") as File | Blob;
-    const city = formData.get("city") as string;
+    // const enrollmentId = formData.get("enrollmentId") as string;
+    // const collegeId = formData.get("collegeId") as File | Blob;
+    // const city = formData.get("city") as string;
     const state = formData.get("state") as string;
     const password = formData.get("password") as string;
 
@@ -29,16 +30,33 @@ export const action: ActionFunction = async ({ request }) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    const id_val = nanoid(); // Generate a short unique ID
+
+    function getFullName(firstName, lastName) {
+        const fullName = `${firstName} ${lastName}`;
+        return fullName;
+    }
+
     // Convert the collegeId Blob to binary data (Buffer)
-    const collegeIdBuffer = collegeId instanceof Blob ? Buffer.from(await collegeId.arrayBuffer()) : null;
+    // const collegeIdBuffer = collegeId instanceof Blob ? Buffer.from(await collegeId.arrayBuffer()) : null;
 
     try {
+        const res = await pool.query(
+            `SELECT id FROM Universities 
+                WHERE university_name = $1 AND city = $2`,
+            [ collegeName, state]
+        );
+
+        const uni_id = res.rows[0]?.id; // Access the 'id' from the result
+
+        const full_name = getFullName(firstName, lastName);
+
         const result = await pool.query(
-            `INSERT INTO users (
-                first_name, last_name, college_name, university_name, university_email, enrollment_id, college_id, city, state, password
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING id, university_email`,
-            [firstName, lastName, collegeName, universityName, universityEmail, enrollmentId, collegeIdBuffer, city, state, hashedPassword]
+            `INSERT INTO Users (
+                id, university_id, name, email, password_hash, role
+            ) VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, email`,
+            [id_val, uni_id, full_name, universityEmail, hashedPassword, 'student']
         );
 
         console.log("result", result);
@@ -71,6 +89,7 @@ export default function SignUpForm() {
     };
 
     return (
+
         <div className="flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation">
             {/* Centered Container with White Background  style={{backgroundColor:"#F1F1F1"}} */}
             <div className="flex bg-gray-100 bg-opacity-80 rounded-3xl shadow-lg p-8 max-w-xl w-full">
