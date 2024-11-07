@@ -61,7 +61,9 @@ authenticator.use(
     //   // if problem with user throw error AuthorizationError
     //   throw new AuthorizationError("Bad Credentials")
     // }
-    // Hash the password before storing it
+
+
+    // ------------ Temporary Hashing the password before storing it--------------------
     // const salt = await bcrypt.genSalt(10);
     // const hashedPassword = await bcrypt.hash("yashdhingra", salt);
     // console.log(hashedPassword);
