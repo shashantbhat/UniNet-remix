@@ -36,4 +36,8 @@ const pool = new pg.Pool({
 // // Call createTable to ensure the table is created on startup
 // createTable();
 
+// export const db = {
+//     query: (text: string, params?: any[]) => pool.query(text, params),
+// };
+
 export default pool;
