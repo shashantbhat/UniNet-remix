@@ -1,15 +1,16 @@
 import { jsx, jsxs } from "react/jsx-runtime";
 import { PassThrough } from "node:stream";
-import { createReadableStreamFromReadable, redirect, json, createCookieSessionStorage } from "@remix-run/node";
-import { RemixServer, Outlet, Meta, Links, ScrollRestoration, Scripts, Form, useActionData, useLoaderData } from "@remix-run/react";
+import { createReadableStreamFromReadable, json, redirect, createCookieSessionStorage } from "@remix-run/node";
+import { RemixServer, Outlet, Meta, Links, ScrollRestoration, Scripts, useLoaderData, Form } from "@remix-run/react";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 import pg from "pg";
 import dotenv from "dotenv";
-import { useState, useEffect, useRef } from "react";
+import { nanoid } from "nanoid";
 import bcrypt from "bcrypt";
 import { Authenticator, AuthorizationError } from "remix-auth";
 import { FormStrategy } from "remix-auth-form";
+import { useState, useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { useNavigate } from "react-router-dom";
 const ABORT_DELAY = 5e3;
@@ -150,12 +151,13 @@ dotenv.config();
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL
 });
-const action$2 = async ({ request }) => {
+const action$1 = async ({ request }) => {
   const formData = await request.formData();
   const collegeName = formData.get("collegeName");
   formData.get("universityName");
   formData.get("city");
   const state = formData.get("state");
+  const id_val = nanoid();
   try {
     const result = await pool.query(
       `INSERT INTO Universities (
@@ -166,6 +168,7 @@ const action$2 = async ({ request }) => {
       // as college is getting officially reg
     );
     console.log("result", result);
+    json({ success: "Your account was created successfully." });
     return redirect("/sign-in");
   } catch (error) {
     console.error("Error inserting user data:", error);
@@ -173,6 +176,7 @@ const action$2 = async ({ request }) => {
   }
 };
 function SignUpForm$1() {
+  const loaderData = useLoaderData();
   return /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation", children: /* @__PURE__ */ jsx("div", { className: "flex bg-gray-100 bg-opacity-80 rounded-3xl shadow-lg p-8 max-w-xl w-full", children: /* @__PURE__ */ jsx("div", { className: "flex justify-center p-10", children: /* @__PURE__ */ jsxs(Form, { encType: "multipart/form-data", method: "post", className: "w-full max-w-lg font-sans", children: [
     /* @__PURE__ */ jsx("div", { className: "flex flex-wrap -mx-3 mb-6", children: /* @__PURE__ */ jsxs("div", { className: "w-full px-3", children: [
       /* @__PURE__ */ jsx(
@@ -315,40 +319,52 @@ function SignUpForm$1() {
           children: "Submit & Sign In"
         }
       ),
-      (actionData == null ? void 0 : actionData.error) && /* @__PURE__ */ jsx("p", { className: "text-red-500 text-sm mt-2", children: actionData.error }),
-      (actionData == null ? void 0 : actionData.success) && /* @__PURE__ */ jsx("p", { className: "text-green-500 text-sm mt-2", children: actionData.success })
+      (loaderData == null ? void 0 : loaderData.error) ? /* @__PURE__ */ jsxs("p", { children: [
+        "ERROR: ",
+        loaderData == null ? void 0 : loaderData.error
+      ] }) : null,
+      (loaderData == null ? void 0 : loaderData.success) && /* @__PURE__ */ jsx("p", { className: "text-green-500 text-sm mt-2", children: loaderData == null ? void 0 : loaderData.success })
     ] })
   ] }) }) }) });
 }
 const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  action: action$2,
+  action: action$1,
   default: SignUpForm$1
 }, Symbol.toStringTag, { value: "Module" }));
-const action$1 = async ({ request }) => {
+const loader$1 = async ({ request }) => {
+  var _a;
   const formData = await request.formData();
   const firstName = formData.get("firstName");
   const lastName = formData.get("lastName");
   const collegeName = formData.get("collegeName");
-  const universityName = formData.get("universityName");
   const universityEmail = formData.get("universityEmail");
-  const enrollmentId = formData.get("enrollmentId");
-  const collegeId = formData.get("collegeId");
-  const city = formData.get("city");
   const state = formData.get("state");
   const password = formData.get("password");
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
-  const collegeIdBuffer = collegeId instanceof Blob ? Buffer.from(await collegeId.arrayBuffer()) : null;
+  const id_val = nanoid();
+  function getFullName(firstName2, lastName2) {
+    const fullName = `${firstName2} ${lastName2}`;
+    return fullName;
+  }
   try {
+    const res = await pool.query(
+      `SELECT id FROM Universities 
+                WHERE university_name = $1 AND city = $2`,
+      [collegeName, state]
+    );
+    const uni_id = (_a = res.rows[0]) == null ? void 0 : _a.id;
+    const full_name = getFullName(firstName, lastName);
     const result = await pool.query(
-      `INSERT INTO users (
-                first_name, last_name, college_name, university_name, university_email, enrollment_id, college_id, city, state, password
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING id, university_email`,
-      [firstName, lastName, collegeName, universityName, universityEmail, enrollmentId, collegeIdBuffer, city, state, hashedPassword]
+      `INSERT INTO Users (
+                id, university_id, name, email, password_hash, role
+            ) VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, email`,
+      [id_val, uni_id, full_name, universityEmail, hashedPassword, "student"]
     );
     console.log("result", result);
+    json({ success: "There was an issue creating your account." });
     return redirect("/sign-in");
   } catch (error) {
     console.error("Error inserting user data:", error);
@@ -356,22 +372,8 @@ const action$1 = async ({ request }) => {
   }
 };
 function SignUpForm() {
-  const actionData2 = useActionData();
-  const [preview, setPreview] = useState(null);
-  const handleFileChange = (event) => {
-    const file = event.target.files ? event.target.files[0] : null;
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-  const handleRemoveFile = () => {
-    setPreview(null);
-  };
-  return /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation", children: /* @__PURE__ */ jsx("div", { className: "flex bg-gray-100 bg-opacity-80 rounded-3xl shadow-lg p-8 max-w-xl w-full", children: /* @__PURE__ */ jsx("div", { className: "flex justify-center p-10", children: /* @__PURE__ */ jsxs(Form, { encType: "multipart/form-data", method: "post", className: "w-full max-w-lg font-sans", children: [
+  const loaderData = useLoaderData();
+  return /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation", children: /* @__PURE__ */ jsx("div", { className: "flex bg-gray-100 bg-opacity-80 rounded-3xl shadow-lg p-8 max-w-xl w-full", children: /* @__PURE__ */ jsx("div", { className: "flex justify-center p-10", children: /* @__PURE__ */ jsxs(Form, { method: "post", className: "w-full max-w-lg font-sans", children: [
     /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap -mx-3 mb-6", children: [
       /* @__PURE__ */ jsxs("div", { className: "w-full md:w-1/2 px-3 mb-6 md:mb-0", children: [
         /* @__PURE__ */ jsx(
@@ -423,16 +425,39 @@ function SignUpForm() {
           children: "Institute Details"
         }
       ),
-      /* @__PURE__ */ jsx(
-        "input",
-        {
-          className: "text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100",
-          name: "collegeName",
-          id: "college-name",
-          type: "text",
-          placeholder: "Enter College Name"
-        }
-      ),
+      /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+        /* @__PURE__ */ jsx(
+          "select",
+          {
+            className: "text-sm block appearance-none w-full bg-gray-50 border-gray-200 border py-3 px-4 h-11 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100",
+            name: "state",
+            id: "state",
+            defaultValue: "",
+            children: /* @__PURE__ */ jsx("option", { value: "", children: "Select Your College" })
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "div",
+          {
+            className: "pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700",
+            children: /* @__PURE__ */ jsx(
+              "svg",
+              {
+                className: "fill-current h-4 w-4",
+                xmlns: "http://www.w3.org/2000/svg",
+                viewBox: "0 0 20 20",
+                children: /* @__PURE__ */ jsx(
+                  "path",
+                  {
+                    d: "M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"
+                  }
+                )
+              }
+            )
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsx("span", { className: "italic text-sm", children: "If your college is not registered with us" }),
       /* @__PURE__ */ jsx(
         "input",
         {
@@ -464,82 +489,6 @@ function SignUpForm() {
         }
       )
     ] }) }),
-    /* @__PURE__ */ jsxs("div", { className: "mb-6", children: [
-      /* @__PURE__ */ jsx(
-        "label",
-        {
-          className: "block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2",
-          htmlFor: "collegeId",
-          children: "College ID"
-        }
-      ),
-      /* @__PURE__ */ jsx("div", { className: "flex flex-col items-center justify-center w-full", children: /* @__PURE__ */ jsxs(
-        "label",
-        {
-          htmlFor: "dropzone-file",
-          className: "h-28 flex flex-col items-center justify-center w-full border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50  hover:bg-gray-100",
-          children: [
-            /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-center justify-center pt-5 pb-6", children: [
-              /* @__PURE__ */ jsx(
-                "svg",
-                {
-                  className: "w-8 h-8 mb-4 text-gray-500",
-                  "aria-hidden": "true",
-                  xmlns: "http://www.w3.org/2000/svg",
-                  fill: "none",
-                  viewBox: "0 0 20 16",
-                  children: /* @__PURE__ */ jsx(
-                    "path",
-                    {
-                      stroke: "currentColor",
-                      strokeLinecap: "round",
-                      strokeLinejoin: "round",
-                      strokeWidth: "2",
-                      d: "M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
-                    }
-                  )
-                }
-              ),
-              /* @__PURE__ */ jsxs("p", { className: "mb-2 text-sm text-gray-500", children: [
-                /* @__PURE__ */ jsx("span", { className: "font-semibold", children: "Click to upload" }),
-                " or drag and drop"
-              ] }),
-              /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-500", children: "SVG, PNG, JPG or GIF (MAX. 800x400px)" })
-            ] }),
-            /* @__PURE__ */ jsx(
-              "input",
-              {
-                id: "dropzone-file",
-                name: "collegeId",
-                type: "file",
-                className: "hidden",
-                accept: "image/*",
-                onChange: handleFileChange
-              }
-            )
-          ]
-        }
-      ) }),
-      /* @__PURE__ */ jsx("div", { className: "flex justify-center", children: preview && /* @__PURE__ */ jsxs("div", { className: "mt-4", children: [
-        /* @__PURE__ */ jsx("div", { className: "flex justify-center", children: /* @__PURE__ */ jsx(
-          "img",
-          {
-            src: preview,
-            alt: "Uploaded Preview",
-            className: "h-32 w-auto object-contain rounded-md border"
-          }
-        ) }),
-        /* @__PURE__ */ jsx("div", { className: "flex justify-center", children: /* @__PURE__ */ jsx(
-          "button",
-          {
-            type: "button",
-            className: "mt-2 px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600 my-3",
-            onClick: handleRemoveFile,
-            children: "Remove File"
-          }
-        ) })
-      ] }) })
-    ] }),
     /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap -mx-3 mb-2", children: [
       /* @__PURE__ */ jsxs("div", { className: "w-full md:w-1/2 px-3 mb-6 md:mb-0", children: [
         /* @__PURE__ */ jsx(
@@ -681,15 +630,18 @@ function SignUpForm() {
           children: "Submit & Sign In"
         }
       ),
-      (actionData2 == null ? void 0 : actionData2.error) && /* @__PURE__ */ jsx("p", { className: "text-red-500 text-sm mt-2", children: actionData2.error }),
-      (actionData2 == null ? void 0 : actionData2.success) && /* @__PURE__ */ jsx("p", { className: "text-green-500 text-sm mt-2", children: actionData2.success })
+      (loaderData == null ? void 0 : loaderData.error) ? /* @__PURE__ */ jsxs("p", { children: [
+        "ERROR: ",
+        loaderData == null ? void 0 : loaderData.error
+      ] }) : null,
+      (loaderData == null ? void 0 : loaderData.success) && /* @__PURE__ */ jsx("p", { className: "text-green-500 text-sm mt-2", children: loaderData == null ? void 0 : loaderData.success })
     ] })
   ] }) }) }) });
 }
 const route2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  action: action$1,
-  default: SignUpForm
+  default: SignUpForm,
+  loader: loader$1
 }, Symbol.toStringTag, { value: "Module" }));
 let sessionStorage = createCookieSessionStorage({
   cookie: {
@@ -937,7 +889,7 @@ const route4 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   __proto__: null,
   default: App
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-Dt6wR-Sk.js", "imports": ["/assets/index-yna4lmYA.js", "/assets/components-BDx6LjiL.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-C9o5RLVJ.js", "imports": ["/assets/index-yna4lmYA.js", "/assets/components-BDx6LjiL.js"], "css": ["/assets/root-BXvT1m3F.css"] }, "routes/_auth.sign-up-college": { "id": "routes/_auth.sign-up-college", "parentId": "root", "path": "sign-up-college", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-college-B7MvHuHs.js", "imports": ["/assets/index-yna4lmYA.js", "/assets/components-BDx6LjiL.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-up-student": { "id": "routes/_auth.sign-up-student", "parentId": "root", "path": "sign-up-student", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-student-B-byqt4z.js", "imports": ["/assets/index-yna4lmYA.js", "/assets/components-BDx6LjiL.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-in": { "id": "routes/_auth.sign-in", "parentId": "root", "path": "sign-in", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-in-DTDbmic-.js", "imports": ["/assets/index-yna4lmYA.js", "/assets/components-BDx6LjiL.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-C13a2XtA.js", "imports": ["/assets/index-yna4lmYA.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] } }, "url": "/assets/manifest-9c58c00b.js", "version": "9c58c00b" };
+const serverManifest = { "entry": { "module": "/assets/entry.client-DmZLDtZ3.js", "imports": ["/assets/index-BNk6GJTt.js", "/assets/components-ByyFvqx2.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-BqBd0wyB.js", "imports": ["/assets/index-BNk6GJTt.js", "/assets/components-ByyFvqx2.js"], "css": ["/assets/root-DZGzzuU5.css"] }, "routes/_auth.sign-up-college": { "id": "routes/_auth.sign-up-college", "parentId": "root", "path": "sign-up-college", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-college-Qs6xD21x.js", "imports": ["/assets/index-BNk6GJTt.js", "/assets/components-ByyFvqx2.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-up-student": { "id": "routes/_auth.sign-up-student", "parentId": "root", "path": "sign-up-student", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-student-C5ROQD3M.js", "imports": ["/assets/index-BNk6GJTt.js", "/assets/components-ByyFvqx2.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-in": { "id": "routes/_auth.sign-in", "parentId": "root", "path": "sign-in", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-in-7wenSho_.js", "imports": ["/assets/index-BNk6GJTt.js", "/assets/components-ByyFvqx2.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-DB3CEApB.js", "imports": ["/assets/index-BNk6GJTt.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] } }, "url": "/assets/manifest-b8c6e258.js", "version": "b8c6e258" };
 const mode = "production";
 const assetsBuildDirectory = "build/client";
 const basename = "/";
