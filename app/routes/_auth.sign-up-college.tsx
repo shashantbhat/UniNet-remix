@@ -11,6 +11,7 @@ type ActionData = {
   success?: string;
 };
 
+
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
 
@@ -64,7 +65,7 @@ export const action: ActionFunction = async ({ request }) => {
 
 // Remix Form component
 export default function SignUpForm() {
-  const actionData = useActionData();
+  const actionData = useActionData<ActionData>();
   const [preview, setPreview] = useState<string | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
