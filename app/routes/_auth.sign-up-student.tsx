@@ -6,35 +6,37 @@ import pool from "~/utils/db.server"; // Importing the database connection
 import "~/grad_bg.css";
 // import { nanoid } from 'nanoid';
 
+
 type University = {
     id?: string;
     name?: string;
-}
+};
 
 type LoaderData = {
     error?: string;
     success?: string;
-    University? : University[];
+    University?: University[];
 };
 
+// Loader to fetch universities for the dropdown
 export let loader: LoaderFunction = async () => {
     try {
-        const res = await pool.query(`SELECT id, name FROM universities`); // Fetch universities
-        return json<LoaderData>({ University: res.rows }); // Return the universities as JSON
+        const res = await pool.query(`SELECT id, name FROM universities`);
+        return json<LoaderData>({ University: res.rows });
     } catch (error) {
-        return json<LoaderData>({ error: 'Failed to fetch universities' }); // Handle error
+        return json<LoaderData>({ error: 'Failed to fetch universities' });
     }
 };
 
+// Action to handle form submission
 export const action: ActionFunction = async ({ request }) => {
     const formData = await request.formData();
 
     const firstName = formData.get("firstName") as string;
     const lastName = formData.get("lastName") as string;
-    const university = formData.get("university") as string; // Assuming 'university' is the correct field to use
-    const universityName = formData.get("universityName") as string; // Only use if needed
+    const university = formData.get("university") as string;
+    const universityName = formData.get("universityName") as string;
     const universityEmail = formData.get("universityEmail") as string;
-    const enrollmentId = formData.get("enrollmentId") as string;
     const state = formData.get("state") as string;
     const password = formData.get("password") as string;
 
@@ -42,34 +44,45 @@ export const action: ActionFunction = async ({ request }) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     function getFullName(firstName: string, lastName: string) {
-        const fullName = `${firstName} ${lastName}`;
-        return fullName;
+        return `${firstName} ${lastName}`;
     }
 
     try {
         const full_name = getFullName(firstName, lastName);
+        let id_val;
 
-        // Query to find the university id
-        const res = await pool.query(
-            `SELECT id FROM universities WHERE name = $1 OR name = $2`,
-            [university, universityName]
-        );
-
-        const id_val = res.rows[0]?.id;
-        if (!id_val) {
-            return json<LoaderData>({ error: 'University not found' });
+        if (university) {
+            // Query to find the university ID from dropdown
+            const res = await pool.query(
+                `SELECT id FROM universities WHERE name = $1`,
+                [university]
+            );
+            id_val = res.rows[0]?.id;
+            if (!id_val) {
+                return json<LoaderData>({ error: 'University not found' });
+            }
+        } else if (universityName) {
+            // Insert new university if dropdown not selected
+            const result1 = await pool.query(
+                `INSERT INTO universities (name, location, approval_status, registered_officially) 
+                 VALUES ($1, $2, $3, $4) RETURNING id`,
+                [universityName, state, "Not_Approved", false]
+            );
+            id_val = result1.rows[0]?.id;
+            if (!id_val) {
+                return json<LoaderData>({ error: 'Error adding university' });
+            }
+        } else {
+            return json<LoaderData>({ error: 'Please select or enter a university' });
         }
 
-        // Insert user into the database
+        // Insert user data with the obtained university ID
         const result = await pool.query(
             `INSERT INTO users (university_id, name, email, password_hash, role)
              VALUES ($1, $2, $3, $4, $5) RETURNING id, email`,
             [id_val, full_name, universityEmail, hashedPassword, 'student']
         );
 
-        console.log("result", result);
-
-        // After successful insert, redirect to sign-in
         return redirect("/sign-in");
 
     } catch (error) {
@@ -78,11 +91,10 @@ export const action: ActionFunction = async ({ request }) => {
     }
 };
 
-
-// Remix Form component
+// Form component
 export default function SignUpForm() {
     const loaderData = useLoaderData<LoaderData>();
-    const { University }: LoaderData = useLoaderData();
+    const actionData = useActionData<LoaderData>();
     // const [preview, setPreview] = useState<string | null>(null);
     //
     // const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,7 +177,7 @@ export default function SignUpForm() {
                                     >
                                         <option value="">Select Your University </option>
                                         {/* Map through universities and create an option for each */}
-                                        {University?.map((uni) => (
+                                        {loaderData.University?.map((uni) => (
                                             <option key={uni.id} value={uni.name}>
                                                 {uni.name}
                                             </option>
