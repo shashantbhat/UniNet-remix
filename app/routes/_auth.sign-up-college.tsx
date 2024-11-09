@@ -1,129 +1,111 @@
-import React, { useState, useEffect } from "react";
-import { Form, useActionData, useLoaderData } from "@remix-run/react";
-import {ActionFunction, json, LoaderFunction, redirect} from "@remix-run/node";
+import React, { useState } from "react";
+import { Form, useActionData } from "@remix-run/react";
+import { ActionFunction, json, redirect } from "@remix-run/node";
 import bcrypt from "bcrypt";
 import pool from "~/utils/db.server"; // Importing the database connection
 import "~/grad_bg.css";
-// import { nanoid } from 'nanoid';
+import { nanoid } from "nanoid";
 
-type University = {
-    id?: string;
-    name?: string;
-}
-
-type LoaderData = {
+type ActionData = {
     error?: string;
     success?: string;
-    University? : University[];
 };
 
-export let loader: LoaderFunction = async () => {
-    try {
-        const res = await pool.query(`SELECT id, name FROM universities`); // Fetch universities
-        return json<LoaderData>({ University: res.rows }); // Return the universities as JSON
-    } catch (error) {
-        return json<LoaderData>({ error: 'Failed to fetch universities' }); // Handle error
-    }
-};
 
 export const action: ActionFunction = async ({ request }) => {
     const formData = await request.formData();
 
     const firstName = formData.get("firstName") as string;
     const lastName = formData.get("lastName") as string;
-    const university = formData.get("university") as string; // Assuming 'university' is the correct field to use
-    const universityName = formData.get("universityName") as string; // Only use if needed
-    const universityEmail = formData.get("universityEmail") as string;
-    const enrollmentId = formData.get("enrollmentId") as string;
+    const collegeName = formData.get("universityName") as string;
+    const city = formData.get("city") as string;
+    const adminEmail = formData.get("Email") as string;
     const state = formData.get("state") as string;
     const password = formData.get("password") as string;
 
+    // Hash the password before storing it
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    function getFullName(firstName, lastName) {
-        const fullName = `${firstName} ${lastName}`;
-        return fullName;
-    }
+    const id_val = nanoid(); // Generate a short unique ID
+
+    // Convert the collegeId Blob to binary data (Buffer)
+    // const collegeIdBuffer = collegeId instanceof Blob ? Buffer.from(await collegeId.arrayBuffer()) : null;
 
     try {
-        const full_name = getFullName(firstName, lastName);
 
-        // Query to find the university id
-        const res = await pool.query(
-            `SELECT id FROM universities WHERE name = $1 OR name = $2`,
-            [university, universityName]
-        );
-
-        const id_val = res.rows[0]?.id;
-        if (!id_val) {
-            return json<LoaderData>({ error: 'University not found' });
-        }
-
-        // Insert user into the database
         const result = await pool.query(
-            `INSERT INTO users (university_id, name, email, password_hash, role)
-             VALUES ($1, $2, $3, $4, $5) RETURNING id, email`,
-            [id_val, full_name, universityEmail, hashedPassword, 'student']
+            `INSERT INTO universities (
+         name, location, approval_status, registered_officially
+      ) VALUES ($1, $2, $3, $4)
+      RETURNING id, name`,
+            [collegeName, city, "Not_Approved", true]
         );
+
+        const universityId = result.rows[0].id;
+
+        const result1 = await pool.query(
+            `INSERT INTO users (
+         university_id, name, email, password_hash,role
+      ) VALUES ($1, $2, $3, $4,$5)
+      RETURNING id, name`,
+            [universityId, firstName+" "+lastName, adminEmail, hashedPassword, "local_admin"]
+        );
+
 
         console.log("result", result);
-
-        // After successful insert, redirect to sign-in
         return redirect("/sign-in");
-
     } catch (error) {
         console.error("Error inserting user data:", error);
-        return json<LoaderData>({ error: "There was an issue creating your account." });
+        return json<ActionData>({
+            error: "There was an issue creating your account.",
+        });
     }
 };
 
-
 // Remix Form component
 export default function SignUpForm() {
-    const loaderData = useLoaderData<LoaderData>();
-    const { University }: LoaderData = useLoaderData();
-    // const [preview, setPreview] = useState<string | null>(null);
-    //
-    // const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    //     const file = event.target.files ? event.target.files[0] : null;
-    //     if (file) {
-    //         const reader = new FileReader();
-    //         reader.onloadend = () => {
-    //             setPreview(reader.result as string);
-    //         };
-    //         reader.readAsDataURL(file);
-    //     }
-    // };
-    //
-    // const handleRemoveFile = () => {
-    //     setPreview(null);
-    // };
-    // const [universities, setUniversities] = useState([]);
+    const actionData = useActionData<ActionData>();
+    const [preview, setPreview] = useState<string | null>(null);
 
-    // useEffect(() => {
-    //     // Fetch universities from your backend
-    //     const fetchUniversities = async () => {
-    //         const res = await pool.query(`SELECT id, name FROM universities`);
-    //         const data = await res.json();
-    //         setUniversities(data); // Assuming the data is in the same format as your query result
-    //     };
-    //
-    //     fetchUniversities();
-    // }, []);
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files ? event.target.files[0] : null;
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
-        return (
+    const handleRemoveFile = () => {
+        setPreview(null);
+    };
 
+    return (
         <div className="flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation">
             {/* Centered Container with White Background  style={{backgroundColor:"#F1F1F1"}} */}
             <div className="flex bg-gray-100 bg-opacity-80 rounded-3xl shadow-lg p-8 max-w-xl w-full">
                 <div className="flex justify-center p-10">
-                    <Form method="post" className="w-full max-w-lg font-sans">
+                    <Form
+                        encType="multipart/form-data"
+                        method="post"
+                        className="w-full max-w-lg font-sans"
+                    >
+                        <label
+                            className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
+                            htmlFor="firstName"
+                        >
+                            Admin Details
+                        </label>
+                        <br />
                         <div className="flex flex-wrap -mx-3 mb-6">
                             <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
                                 <label
                                     className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-                                    htmlFor="firstName">
+                                    htmlFor="firstName"
+                                >
                                     First Name
                                 </label>
                                 <input
@@ -137,7 +119,8 @@ export default function SignUpForm() {
                             <div className="w-full md:w-1/2 px-3">
                                 <label
                                     className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-                                    htmlFor="lastName">
+                                    htmlFor="lastName"
+                                >
                                     Last Name
                                 </label>
                                 <input
@@ -153,42 +136,11 @@ export default function SignUpForm() {
                             <div className="w-full px-3">
                                 <label
                                     className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-                                    htmlFor="instituteDetails">
+                                    htmlFor="instituteDetails"
+                                >
                                     Institute Details
                                 </label>
-                                <div className="relative">
-                                    <select
-                                        className="text-sm block appearance-none w-full bg-gray-50 border-gray-200 border py-3 px-4 h-11 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
-                                        name="university"
-                                        id="university"
-                                        defaultValue=""
-                                    >
-                                        <option value="">Select Your University </option>
-                                        {/* Map through universities and create an option for each */}
-                                        {University?.map((uni) => (
-                                            <option key={uni.id} value={uni.name}>
-                                                {uni.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div
-                                        className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg"
-                                             viewBox="0 0 20 20">
-                                            <path
-                                                d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-                                        </svg>
-                                    </div>
-                                </div>
 
-                                {/*<input*/}
-                                {/*    className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"*/}
-                                {/*    name="collegeName"*/}
-                                {/*    id="college-name"*/}
-                                {/*    type="text"*/}
-                                {/*    placeholder="Enter College Name"*/}
-                                {/*/>*/}
-                                <span className="italic text-sm">If your college is not registered with us</span>
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
                                     name="universityName"
@@ -199,108 +151,21 @@ export default function SignUpForm() {
 
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
-                                    name="universityEmail"
+                                    name="Email"
                                     id="university-email"
                                     type="text"
-                                    placeholder="Enter University Email ID"
+                                    placeholder="Enter Admin Email ID"
                                 />
 
-
-                                <input
-                                    className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
-                                    name="enrollmentId"
-                                    id="enrollment-id"
-                                    type="text"
-                                    placeholder="Enter Enrollement ID"
-                                />
                             </div>
                         </div>
-
-
-                        {/*<div className="mb-6">*/}
-                        {/*    <label*/}
-                        {/*        className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"*/}
-                        {/*        htmlFor="collegeId">*/}
-                        {/*        College ID*/}
-                        {/*    </label>*/}
-                        {/*    <div className="flex flex-col items-center justify-center w-full">*/}
-                        {/*        <label*/}
-                        {/*            htmlFor="dropzone-file"*/}
-                        {/*            className="h-28 flex flex-col items-center justify-center w-full border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50  hover:bg-gray-100"*/}
-                        {/*        >*/}
-                        {/*            <div className="flex flex-col items-center justify-center pt-5 pb-6">*/}
-                        {/*                <svg*/}
-                        {/*                    className="w-8 h-8 mb-4 text-gray-500"*/}
-                        {/*                    aria-hidden="true"*/}
-                        {/*                    xmlns="http://www.w3.org/2000/svg"*/}
-                        {/*                    fill="none"*/}
-                        {/*                    viewBox="0 0 20 16"*/}
-                        {/*                >*/}
-                        {/*                    <path*/}
-                        {/*                        stroke="currentColor"*/}
-                        {/*                        strokeLinecap="round"*/}
-                        {/*                        strokeLinejoin="round"*/}
-                        {/*                        strokeWidth="2"*/}
-                        {/*                        d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"*/}
-                        {/*                    />*/}
-                        {/*                </svg>*/}
-                        {/*                <p className="mb-2 text-sm text-gray-500">*/}
-                        {/*                    <span className="font-semibold">Click to upload</span> or drag and*/}
-                        {/*                    drop*/}
-                        {/*                </p>*/}
-                        {/*                <p className="text-xs text-gray-500">*/}
-                        {/*                    SVG, PNG, JPG or GIF (MAX. 800x400px)*/}
-                        {/*                </p>*/}
-                        {/*            </div>*/}
-                        {/*            <input*/}
-                        {/*                id="dropzone-file"*/}
-                        {/*                name="collegeId"*/}
-                        {/*                type="file"*/}
-                        {/*                className="hidden"*/}
-                        {/*                accept="image/*"*/}
-                        {/*                onChange={handleFileChange}*/}
-                        {/*            />*/}
-
-                        {/*        </label>*/}
-                        {/*    </div>*/}
-
-                        {/*    /!*<div className="flex justify-center">*!/*/}
-                        {/*    /!*    <button type="submit"*!/*/}
-                        {/*    /!*            className="bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition my-3">*!/*/}
-                        {/*    /!*        Upload*!/*/}
-                        {/*    /!*    </button>*!/*/}
-                        {/*    /!*</div>*!/*/}
-
-                        {/*    <div className="flex justify-center">*/}
-                        {/*        /!* Display the uploaded image preview *!/*/}
-                        {/*        {preview && (*/}
-                        {/*            <div className="mt-4">*/}
-                        {/*                <div className="flex justify-center">*/}
-                        {/*                    <img*/}
-                        {/*                        src={preview}*/}
-                        {/*                        alt="Uploaded Preview"*/}
-                        {/*                        className="h-32 w-auto object-contain rounded-md border"*/}
-                        {/*                    />*/}
-                        {/*                </div>*/}
-                        {/*                <div className="flex justify-center">*/}
-                        {/*                    <button*/}
-                        {/*                        type="button"*/}
-                        {/*                        className="mt-2 px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600 my-3"*/}
-                        {/*                        onClick={handleRemoveFile}*/}
-                        {/*                    >*/}
-                        {/*                        Remove File*/}
-                        {/*                    </button>*/}
-                        {/*                </div>*/}
-                        {/*            </div>*/}
-                        {/*        )}*/}
-                        {/*    </div>*/}
-                        {/*</div>*/}
 
                         <div className="flex flex-wrap -mx-3 mb-2">
                             <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
                                 <label
                                     className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-                                    htmlFor="city">
+                                    htmlFor="city"
+                                >
                                     City
                                 </label>
                                 <input
@@ -314,21 +179,19 @@ export default function SignUpForm() {
                             <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
                                 <label
                                     className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-                                    htmlFor="state">
+                                    htmlFor="state"
+                                >
                                     State
                                 </label>
 
                                 <div className="relative">
                                     <select
-
                                         className="text-sm block appearance-none w-full bg-gray-50 border-gray-200 border py-3 px-4 h-11 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
                                         name="state"
                                         id="state"
                                         defaultValue=""
                                     >
-                                        <option value="">
-                                            Select Your State
-                                        </option>
+                                        <option value="">Select Your State</option>
                                         <option value="Andhra Pradesh">Andhra Pradesh</option>
                                         <option value="Arunachal Pradesh">Arunachal Pradesh</option>
                                         <option value="Assam">Assam</option>
@@ -357,13 +220,12 @@ export default function SignUpForm() {
                                         <option value="Uttar Pradesh">Uttar Pradesh</option>
                                         <option value="Uttarakhand">Uttarakhand</option>
                                         <option value="West Bengal">West Bengal</option>
-                                        <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands
+                                        <option value="Andaman and Nicobar Islands">
+                                            Andaman and Nicobar Islands
                                         </option>
                                         <option value="Chandigarh">Chandigarh</option>
-                                        <option value="Dadra and Nagar Haveli and Daman and Diu">Dadra and Nagar
-                                            Haveli
-                                            and
-                                            Daman and Diu
+                                        <option value="Dadra and Nagar Haveli and Daman and Diu">
+                                            Dadra and Nagar Haveli and Daman and Diu
                                         </option>
                                         <option value="Lakshadweep">Lakshadweep</option>
                                         <option value="Delhi">Delhi</option>
@@ -371,12 +233,13 @@ export default function SignUpForm() {
                                         <option value="Ladakh">Ladakh</option>
                                         <option value="Jammu and Kashmir">Jammu and Kashmir</option>
                                     </select>
-                                    <div
-                                        className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg"
-                                             viewBox="0 0 20 20">
-                                            <path
-                                                d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                        <svg
+                                            className="fill-current h-4 w-4"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
                                         </svg>
                                     </div>
                                 </div>
@@ -386,7 +249,8 @@ export default function SignUpForm() {
                             <div className="w-full px-3">
                                 <label
                                     className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-                                    htmlFor="password">
+                                    htmlFor="password"
+                                >
                                     Password
                                 </label>
                                 <input
@@ -397,24 +261,32 @@ export default function SignUpForm() {
                                     placeholder="Enter Password"
                                 />
                                 <p className="text-gray-600 text-xs italic">
-                                    Make sure your password is:<br/>
-                                    - at least 8 characters long.<br/>
-                                    - at least 1 Uppercase letter along with Lowercase.<br/>
-                                    - contains a combination of alpha-numeric and special characters.<br/>
+                                    Make sure your password is:
+                                    <br />
+                                    - at least 8 characters long.
+                                    <br />
+                                    - at least 1 Uppercase letter along with Lowercase.
+                                    <br />
+                                    - contains a combination of alpha-numeric and special
+                                    characters.
+                                    <br />
                                 </p>
                             </div>
                         </div>
                         <div className="flex justify-center">
-                            <button type="submit"
-                                    className="bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition"
+                            <button
+                                type="submit"
+                                className="bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition"
                             >
                                 Submit & Sign In
                             </button>
-                            {loaderData?.error ? (
-                                <p>ERROR: {loaderData?.error}</p>
-                            ) : null}
-                            {loaderData?.success && (
-                                <p className="text-green-500 text-sm mt-2">{loaderData?.success}</p>
+                            {actionData?.error && (
+                                <p className="text-red-500 text-sm mt-2">{actionData.error}</p>
+                            )}
+                            {actionData?.success && (
+                                <p className="text-green-500 text-sm mt-2">
+                                    {actionData.success}
+                                </p>
                             )}
                         </div>
                     </Form>

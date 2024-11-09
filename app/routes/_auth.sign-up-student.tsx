@@ -41,7 +41,7 @@ export const action: ActionFunction = async ({ request }) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    function getFullName(firstName, lastName) {
+    function getFullName(firstName: string, lastName: string) {
         const fullName = `${firstName} ${lastName}`;
         return fullName;
     }
