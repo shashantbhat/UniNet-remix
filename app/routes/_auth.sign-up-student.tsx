@@ -18,32 +18,6 @@ type LoaderData = {
     University?: University[];
 };
 
-//for validation of password
-function validatePassword(password: string): string | null {
-    const minLength = /.{8,}/;
-    const uppercase = /[A-Z]/;
-    const lowercase = /[a-z]/;
-    const alphanumeric = /[0-9]/;
-    const specialChar = /[!@#$%^&*(),.?":{}|<>]/;
-
-    if (!minLength.test(password)) {
-        return "Password must be at least 8 characters long.";
-    }
-    if (!uppercase.test(password)) {
-        return "Password must contain at least one uppercase letter.";
-    }
-    if (!lowercase.test(password)) {
-        return "Password must contain at least one lowercase letter.";
-    }
-    if (!alphanumeric.test(password)) {
-        return "Password must contain at least one numeric character.";
-    }
-    if (!specialChar.test(password)) {
-        return "Password must contain at least one special character.";
-    }
-    return null;
-}
-
 // Loader to fetch universities for the dropdown
 export let loader: LoaderFunction = async () => {
     try {
@@ -65,12 +39,6 @@ export const action: ActionFunction = async ({ request }) => {
     const universityEmail = formData.get("universityEmail") as string;
     const state = formData.get("state") as string;
     const password = formData.get("password") as string;
-
-    // Validate the password
-    const passwordError = validatePassword(password);
-    if (passwordError) {
-        return json({ error: passwordError });
-    }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -117,13 +85,9 @@ export const action: ActionFunction = async ({ request }) => {
 
         return redirect("/sign-in");
 
-    } catch (error: any) {
-        if (error.code === '23505' && error.detail.includes('Key (email)')) {
-            return json({ error: 'Email already exists' });
-        }
+    } catch (error) {
         console.error("Error inserting user data:", error);
-        // return json({ error: "There was an issue creating your account." });
-        return redirect("/404.");
+        return json<LoaderData>({ error: "There was an issue creating your account." });
     }
 };
 
@@ -236,7 +200,7 @@ export default function SignUpForm() {
                                 {/*    type="text"*/}
                                 {/*    placeholder="Enter College Name"*/}
                                 {/*/>*/}
-                                <span className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2">If your college is not registered with us</span>
+                                <span className="italic text-sm">If your college is not registered with us</span>
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
                                     name="universityName"
@@ -252,11 +216,8 @@ export default function SignUpForm() {
                                     type="text"
                                     placeholder="Enter University Email ID"
                                 />
-                                
-                                {actionData?.error && actionData.error === 'Email already exists' && (
-                                <p className="text-red-500 text-xs italic">{actionData.error}</p>
-                                )}
-                           
+
+
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
                                     name="enrollmentId"
@@ -446,9 +407,7 @@ export default function SignUpForm() {
                                     id="password"
                                     type="password"
                                     placeholder="Enter Password"
-                                />{actionData?.error && actionData.error !== 'Email already exists' && actionData.error !== 'There was an issue creating your account.' && (
-                                    <p className="text-red-500 text-xs italic">{actionData.error}</p>
-                                )}
+                                />
                                 <p className="text-gray-600 text-xs italic">
                                     Make sure your password is:<br/>
                                     - at least 8 characters long.<br/>
