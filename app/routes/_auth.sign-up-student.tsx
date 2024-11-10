@@ -123,7 +123,7 @@ export const action: ActionFunction = async ({ request }) => {
         }
         console.error("Error inserting user data:", error);
         // return json({ error: "There was an issue creating your account." });
-        return redirect("/404.");
+        return redirect("/404");
     }
 };
 
