@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Form, useActionData, useLoaderData } from "@remix-run/react";
+import { Form, useActionData, useLoaderData, useParams } from "@remix-run/react";
 import {ActionFunction, json, LoaderFunction, redirect} from "@remix-run/node";
 import bcrypt from "bcrypt";
 import pool from "~/utils/db.server"; // Importing the database connection
@@ -114,8 +114,8 @@ export const action: ActionFunction = async ({ request }) => {
              VALUES ($1, $2, $3, $4, $5) RETURNING id, email`,
             [id_val, full_name, universityEmail, hashedPassword, 'student']
         );
-
-        return redirect("/sign-in");
+        const { id } = useParams();
+        return redirect(`/dash/${id}`);
 
     } catch (error: any) {
         if (error.code === '23505' && error.detail.includes('Key (email)')) {

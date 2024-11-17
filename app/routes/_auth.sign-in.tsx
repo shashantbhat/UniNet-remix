@@ -18,7 +18,7 @@ import "app/grad_bg.css";
 export const action: ActionFunction = async ({ request, context }) => {
   // call my authenticator
   const resp = await authenticator.authenticate("form", request, {
-    successRedirect: "https://www.google.com",
+    successRedirect: "/dash/id",
     failureRedirect: "/sign-in",
     throwOnError: true,
     context,
@@ -36,7 +36,7 @@ export const action: ActionFunction = async ({ request, context }) => {
  */
 export const loader: LoaderFunction = async ({ request }) => {
   await authenticator.isAuthenticated(request, {
-    successRedirect: "https://www.google.com",
+    successRedirect: "/dash/id",
   });
 
   const session = await sessionStorage.getSession(

@@ -11,9 +11,13 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
     "@headlessui/react": "^2.1.8",
     "@heroicons/react": "^2.1.5",
     "@mapbox/node-pre-gyp": "^1.0.11",
+    "@mui/icons-material": "^6.1.6",
+    "@mui/material": "^6.1.6",
     "@prisma/client": "^5.21.1",
     "@remix-run/node": "^2.13.1",
     "@remix-run/react": "^2.12.1",
