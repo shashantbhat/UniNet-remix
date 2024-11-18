@@ -20,4 +20,8 @@ export let { getSession, commitSession, destroySession } = sessionStorage;
 export type User = {
   name: string;
   token: string;
+  id:string;
+  university_id:string;
+  email:string;
+  role:string;
 };
