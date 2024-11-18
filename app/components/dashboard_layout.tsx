@@ -1,8 +1,12 @@
 import { Outlet } from "@remix-run/react";
 import Sidebar from "~/components/sideBar";
 import Navbar from "~/components/topNavBar";
+import { useLoaderData } from "@remix-run/react";
+
+
 
 export default function DashboardLayout() {
+
   return (
     <div className="flex flex-col h-screen">
       {/* Navbar at the top */}

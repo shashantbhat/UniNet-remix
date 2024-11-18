@@ -71,6 +71,7 @@ import HelloText from '~/components/hello';
 import "app/grad_bg.css";
 import NotFound from "./404";
 
+
 const App: React.FC = () => {
     const helloRef = useRef<HTMLDivElement | null>(null); // Ref for the HelloText container
     const welcomeRef = useRef<HTMLDivElement | null>(null); // Ref for the Welcome text container
