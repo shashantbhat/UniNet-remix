@@ -10,7 +10,7 @@ import { sessionStorage } from "~/utils/session.server";
 
 export let loader: LoaderFunction = async ({ request }) => {
   return await authenticator.isAuthenticated(request, {
-    failureRedirect: "/login",
+    failureRedirect: "/sign-in",
   });
 };
 // 
