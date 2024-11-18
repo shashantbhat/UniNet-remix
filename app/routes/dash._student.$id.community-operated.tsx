@@ -1,17 +1,14 @@
-// FILE: app/routes/dash._student.$id.community-operated.tsx
-
 import React, { useState } from "react";
 import { useLoaderData, useParams } from "@remix-run/react";
 import { LoaderFunction, json } from "@remix-run/node";
 import pool from "~/utils/db.server";
-import { c } from "vite/dist/node/types.d-aGj9QkWt";
 
 // Loader function to fetch files from the database
 export const loader: LoaderFunction = async ({ params }) => {
   const client = await pool.connect();
   try {
     const result = await client.query("SELECT * FROM files");
-    console.log(result.rows);
+    console.log(result.rows); // Ensure rows are being fetched correctly
     return json(result.rows);
   } finally {
     client.release();
@@ -19,7 +16,7 @@ export const loader: LoaderFunction = async ({ params }) => {
 };
 
 const CommunityOperated = () => {
-  const files = useLoaderData();
+  const files = useLoaderData(); // Files data from loader
   const [searchTerm, setSearchTerm] = useState("");
   const { id } = useParams();
 
@@ -29,10 +26,6 @@ const CommunityOperated = () => {
 
   const handleSearchClick = () => {
     alert("Search clicked!");
-  };
-
-  const handleFileClick = () => {
-    window.location.href = "/404";
   };
 
   return (
@@ -67,7 +60,7 @@ const CommunityOperated = () => {
               <th className="py-2 px-4 border-b text-center">File Name</th>
               <th className="py-2 px-4 border-b text-center">Description</th>
               <th className="py-2 px-4 border-b text-center">Upload Date</th>
-              <th className="py-2 px-4 border-b text-center">Rating</th>
+              <th className="py-2 px-4 border-b text-center">Average Rating</th>
             </tr>
           </thead>
           <tbody>
@@ -75,19 +68,22 @@ const CommunityOperated = () => {
               <tr key={file.id}>
                 <td className="py-2 px-4 border-b text-center">
                   <a
-                    href="#"
-                    onClick={handleFileClick}
+                    href={file.file_url} // Link to the file URL
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-blue-500"
                   >
-                    {file.name}
+                    {file.title}
                   </a>
                 </td>
                 <td className="py-2 px-4 border-b text-center">
-                  {file.date_created}
+                  {file.description || "No description provided"}
                 </td>
-                <td className="py-2 px-4 border-b text-center">{file.tags}</td>
                 <td className="py-2 px-4 border-b text-center">
-                  {file.rating}
+                  {new Date(file.upload_date).toLocaleDateString()}
+                </td>
+                <td className="py-2 px-4 border-b text-center">
+                  {file.average_rating.toFixed(1)} ★
                 </td>
               </tr>
             ))}
