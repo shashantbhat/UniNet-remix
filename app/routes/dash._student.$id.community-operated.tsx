@@ -1,8 +1,27 @@
+// FILE: app/routes/dash._student.$id.community-operated.tsx
+
 import React, { useState } from "react";
-import {useParams} from "@remix-run/react";
+import { useLoaderData, useParams } from "@remix-run/react";
+import { LoaderFunction, json } from "@remix-run/node";
+import pool from "~/utils/db.server";
+import { c } from "vite/dist/node/types.d-aGj9QkWt";
+
+// Loader function to fetch files from the database
+export const loader: LoaderFunction = async ({ params }) => {
+  const client = await pool.connect();
+  try {
+    const result = await client.query("SELECT * FROM files");
+    console.log(result.rows);
+    return json(result.rows);
+  } finally {
+    client.release();
+  }
+};
 
 const CommunityOperated = () => {
+  const files = useLoaderData();
   const [searchTerm, setSearchTerm] = useState("");
+  const { id } = useParams();
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
@@ -15,7 +34,7 @@ const CommunityOperated = () => {
   const handleFileClick = () => {
     window.location.href = "/404";
   };
-const { id } = useParams();
+
   return (
     <div className="flex flex-col h-screen p-4">
       <button
@@ -46,33 +65,32 @@ const { id } = useParams();
           <thead>
             <tr>
               <th className="py-2 px-4 border-b text-center">File Name</th>
-              <th className="py-2 px-4 border-b text-center">Date Created</th>
-              <th className="py-2 px-4 border-b text-center">Tags</th>
+              <th className="py-2 px-4 border-b text-center">Description</th>
+              <th className="py-2 px-4 border-b text-center">Upload Date</th>
               <th className="py-2 px-4 border-b text-center">Rating</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td className="py-2 px-4 border-b text-center">
-                <a href="#" onClick={handleFileClick} className="text-blue-500">
-                  File1.txt
-                </a>
-              </td>
-              <td className="py-2 px-4 border-b text-center">2023-01-01</td>
-              <td className="py-2 px-4 border-b text-center">Tag1, Tag2</td>
-              <td className="py-2 px-4 border-b text-center">⭐⭐⭐⭐⭐</td>
-            </tr>
-            <tr>
-              <td className="py-2 px-4 border-b text-center">
-                <a href="#" onClick={handleFileClick} className="text-blue-500">
-                  File2.txt
-                </a>
-              </td>
-              <td className="py-2 px-4 border-b text-center">2023-01-02</td>
-              <td className="py-2 px-4 border-b text-center">Tag3, Tag4</td>
-              <td className="py-2 px-4 border-b text-center">⭐⭐⭐⭐</td>
-            </tr>
-            {/* Add more dummy rows as needed */}
+            {files?.map((file: any) => (
+              <tr key={file.id}>
+                <td className="py-2 px-4 border-b text-center">
+                  <a
+                    href="#"
+                    onClick={handleFileClick}
+                    className="text-blue-500"
+                  >
+                    {file.name}
+                  </a>
+                </td>
+                <td className="py-2 px-4 border-b text-center">
+                  {file.date_created}
+                </td>
+                <td className="py-2 px-4 border-b text-center">{file.tags}</td>
+                <td className="py-2 px-4 border-b text-center">
+                  {file.rating}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
