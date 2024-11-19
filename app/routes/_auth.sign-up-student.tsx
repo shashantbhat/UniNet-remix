@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Form, useActionData, useLoaderData, useParams } from "@remix-run/react";
-import {ActionFunction, json, LoaderFunction, redirect} from "@remix-run/node";
+import { ActionFunction, json, LoaderFunction, redirect } from "@remix-run/node";
 import bcrypt from "bcrypt";
 import pool from "~/utils/db.server"; // Importing the database connection
 import "~/grad_bg.css";
-// import { nanoid } from 'nanoid';
-
 
 type University = {
     id?: string;
@@ -18,7 +16,7 @@ type LoaderData = {
     University?: University[];
 };
 
-//for validation of password
+// for validation of password
 function validatePassword(password: string): string | null {
     const minLength = /.{8,}/;
     const uppercase = /[A-Z]/;
@@ -50,6 +48,7 @@ export let loader: LoaderFunction = async () => {
         const res = await pool.query(`SELECT id, name FROM universities`);
         return json<LoaderData>({ University: res.rows });
     } catch (error) {
+        console.error("Error fetching universities:", error);
         return json<LoaderData>({ error: 'Failed to fetch universities' });
     }
 };
@@ -114,16 +113,19 @@ export const action: ActionFunction = async ({ request }) => {
              VALUES ($1, $2, $3, $4, $5) RETURNING id, email`,
             [id_val, full_name, universityEmail, hashedPassword, 'student']
         );
-        const { id } = useParams();
-        return redirect(`/dash/${id}`);
+
+        // Log the result for debugging
+        console.log("User inserted:", result.rows[0]);
+
+        // Redirect to the dashboard with the user's ID
+        return redirect(`/dash/${result.rows[0].id}`);
 
     } catch (error: any) {
         if (error.code === '23505' && error.detail.includes('Key (email)')) {
             return json({ error: 'Email already exists' });
         }
         console.error("Error inserting user data:", error);
-        // return json({ error: "There was an issue creating your account." });
-        return redirect("/404");
+        return json({ error: "There was an issue creating your account." });
     }
 };
 
@@ -131,39 +133,9 @@ export const action: ActionFunction = async ({ request }) => {
 export default function SignUpForm() {
     const loaderData = useLoaderData<LoaderData>();
     const actionData = useActionData<LoaderData>();
-    // const [preview, setPreview] = useState<string | null>(null);
-    //
-    // const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    //     const file = event.target.files ? event.target.files[0] : null;
-    //     if (file) {
-    //         const reader = new FileReader();
-    //         reader.onloadend = () => {
-    //             setPreview(reader.result as string);
-    //         };
-    //         reader.readAsDataURL(file);
-    //     }
-    // };
-    //
-    // const handleRemoveFile = () => {
-    //     setPreview(null);
-    // };
-    // const [universities, setUniversities] = useState([]);
 
-    // useEffect(() => {
-    //     // Fetch universities from your backend
-    //     const fetchUniversities = async () => {
-    //         const res = await pool.query(`SELECT id, name FROM universities`);
-    //         const data = await res.json();
-    //         setUniversities(data); // Assuming the data is in the same format as your query result
-    //     };
-    //
-    //     fetchUniversities();
-    // }, []);
-
-        return (
-
+    return (
         <div className="flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation">
-            {/* Centered Container with White Background  style={{backgroundColor:"#F1F1F1"}} */}
             <div className="flex bg-gray-100 bg-opacity-80 rounded-3xl shadow-lg p-8 max-w-xl w-full">
                 <div className="flex justify-center p-10">
                     <Form method="post" className="w-full max-w-lg font-sans">
@@ -212,7 +184,6 @@ export default function SignUpForm() {
                                         defaultValue=""
                                     >
                                         <option value="">Select Your University </option>
-                                        {/* Map through universities and create an option for each */}
                                         {loaderData.University?.map((uni) => (
                                             <option key={uni.id} value={uni.name}>
                                                 {uni.name}
@@ -228,14 +199,6 @@ export default function SignUpForm() {
                                         </svg>
                                     </div>
                                 </div>
-
-                                {/*<input*/}
-                                {/*    className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"*/}
-                                {/*    name="collegeName"*/}
-                                {/*    id="college-name"*/}
-                                {/*    type="text"*/}
-                                {/*    placeholder="Enter College Name"*/}
-                                {/*/>*/}
                                 <span className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2">If your college is not registered with us</span>
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
@@ -244,7 +207,6 @@ export default function SignUpForm() {
                                     type="text"
                                     placeholder="Enter University Name"
                                 />
-
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
                                     name="universityEmail"
@@ -252,11 +214,9 @@ export default function SignUpForm() {
                                     type="text"
                                     placeholder="Enter University Email ID"
                                 />
-                                
                                 {actionData?.error && actionData.error === 'Email already exists' && (
-                                <p className="text-red-500 text-xs italic">{actionData.error}</p>
+                                    <p className="text-red-500 text-xs italic">{actionData.error}</p>
                                 )}
-                           
                                 <input
                                     className="text-sm w-full bg-gray-50 border-gray-200 border py-3 px-4 h-9 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
                                     name="enrollmentId"
@@ -266,87 +226,6 @@ export default function SignUpForm() {
                                 />
                             </div>
                         </div>
-
-
-                        {/*<div className="mb-6">*/}
-                        {/*    <label*/}
-                        {/*        className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"*/}
-                        {/*        htmlFor="collegeId">*/}
-                        {/*        College ID*/}
-                        {/*    </label>*/}
-                        {/*    <div className="flex flex-col items-center justify-center w-full">*/}
-                        {/*        <label*/}
-                        {/*            htmlFor="dropzone-file"*/}
-                        {/*            className="h-28 flex flex-col items-center justify-center w-full border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50  hover:bg-gray-100"*/}
-                        {/*        >*/}
-                        {/*            <div className="flex flex-col items-center justify-center pt-5 pb-6">*/}
-                        {/*                <svg*/}
-                        {/*                    className="w-8 h-8 mb-4 text-gray-500"*/}
-                        {/*                    aria-hidden="true"*/}
-                        {/*                    xmlns="http://www.w3.org/2000/svg"*/}
-                        {/*                    fill="none"*/}
-                        {/*                    viewBox="0 0 20 16"*/}
-                        {/*                >*/}
-                        {/*                    <path*/}
-                        {/*                        stroke="currentColor"*/}
-                        {/*                        strokeLinecap="round"*/}
-                        {/*                        strokeLinejoin="round"*/}
-                        {/*                        strokeWidth="2"*/}
-                        {/*                        d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"*/}
-                        {/*                    />*/}
-                        {/*                </svg>*/}
-                        {/*                <p className="mb-2 text-sm text-gray-500">*/}
-                        {/*                    <span className="font-semibold">Click to upload</span> or drag and*/}
-                        {/*                    drop*/}
-                        {/*                </p>*/}
-                        {/*                <p className="text-xs text-gray-500">*/}
-                        {/*                    SVG, PNG, JPG or GIF (MAX. 800x400px)*/}
-                        {/*                </p>*/}
-                        {/*            </div>*/}
-                        {/*            <input*/}
-                        {/*                id="dropzone-file"*/}
-                        {/*                name="collegeId"*/}
-                        {/*                type="file"*/}
-                        {/*                className="hidden"*/}
-                        {/*                accept="image/*"*/}
-                        {/*                onChange={handleFileChange}*/}
-                        {/*            />*/}
-
-                        {/*        </label>*/}
-                        {/*    </div>*/}
-
-                        {/*    /!*<div className="flex justify-center">*!/*/}
-                        {/*    /!*    <button type="submit"*!/*/}
-                        {/*    /!*            className="bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition my-3">*!/*/}
-                        {/*    /!*        Upload*!/*/}
-                        {/*    /!*    </button>*!/*/}
-                        {/*    /!*</div>*!/*/}
-
-                        {/*    <div className="flex justify-center">*/}
-                        {/*        /!* Display the uploaded image preview *!/*/}
-                        {/*        {preview && (*/}
-                        {/*            <div className="mt-4">*/}
-                        {/*                <div className="flex justify-center">*/}
-                        {/*                    <img*/}
-                        {/*                        src={preview}*/}
-                        {/*                        alt="Uploaded Preview"*/}
-                        {/*                        className="h-32 w-auto object-contain rounded-md border"*/}
-                        {/*                    />*/}
-                        {/*                </div>*/}
-                        {/*                <div className="flex justify-center">*/}
-                        {/*                    <button*/}
-                        {/*                        type="button"*/}
-                        {/*                        className="mt-2 px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600 my-3"*/}
-                        {/*                        onClick={handleRemoveFile}*/}
-                        {/*                    >*/}
-                        {/*                        Remove File*/}
-                        {/*                    </button>*/}
-                        {/*                </div>*/}
-                        {/*            </div>*/}
-                        {/*        )}*/}
-                        {/*    </div>*/}
-                        {/*</div>*/}
-
                         <div className="flex flex-wrap -mx-3 mb-2">
                             <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
                                 <label
@@ -368,18 +247,14 @@ export default function SignUpForm() {
                                     htmlFor="state">
                                     State
                                 </label>
-
                                 <div className="relative">
                                     <select
-
                                         className="text-sm block appearance-none w-full bg-gray-50 border-gray-200 border py-3 px-4 h-11 rounded-[10px] mb-3 focus:outline-none hover:bg-gray-100"
                                         name="state"
                                         id="state"
                                         defaultValue=""
                                     >
-                                        <option value="">
-                                            Select Your State
-                                        </option>
+                                        <option value="">Select Your State</option>
                                         <option value="Andhra Pradesh">Andhra Pradesh</option>
                                         <option value="Arunachal Pradesh">Arunachal Pradesh</option>
                                         <option value="Assam">Assam</option>
@@ -408,14 +283,9 @@ export default function SignUpForm() {
                                         <option value="Uttar Pradesh">Uttar Pradesh</option>
                                         <option value="Uttarakhand">Uttarakhand</option>
                                         <option value="West Bengal">West Bengal</option>
-                                        <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands
-                                        </option>
+                                        <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
                                         <option value="Chandigarh">Chandigarh</option>
-                                        <option value="Dadra and Nagar Haveli and Daman and Diu">Dadra and Nagar
-                                            Haveli
-                                            and
-                                            Daman and Diu
-                                        </option>
+                                        <option value="Dadra and Nagar Haveli and Daman and Diu">Dadra and Nagar Haveli and Daman and Diu</option>
                                         <option value="Lakshadweep">Lakshadweep</option>
                                         <option value="Delhi">Delhi</option>
                                         <option value="Puducherry">Puducherry</option>
@@ -446,7 +316,8 @@ export default function SignUpForm() {
                                     id="password"
                                     type="password"
                                     placeholder="Enter Password"
-                                />{actionData?.error && actionData.error !== 'Email already exists' && actionData.error !== 'There was an issue creating your account.' && (
+                                />
+                                {actionData?.error && actionData.error !== 'Email already exists' && actionData.error !== 'There was an issue creating your account.' && (
                                     <p className="text-red-500 text-xs italic">{actionData.error}</p>
                                 )}
                                 <p className="text-gray-600 text-xs italic">
