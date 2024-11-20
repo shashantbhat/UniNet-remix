@@ -1,16 +1,16 @@
 import { jsx, jsxs } from "react/jsx-runtime";
 import { PassThrough } from "node:stream";
 import { createReadableStreamFromReadable, createCookieSessionStorage, json, redirect } from "@remix-run/node";
-import { RemixServer, Outlet, Meta, Links, ScrollRestoration, Scripts, useParams, useLoaderData, useActionData, Form, useNavigate, Link } from "@remix-run/react";
+import { RemixServer, Outlet, Meta, Links, ScrollRestoration, Scripts, useLoaderData, useParams, useActionData, Form, useNavigate, Link } from "@remix-run/react";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 import { useState, useEffect, useRef } from "react";
-import { BlobServiceClient } from "@azure/storage-blob";
 import pg from "pg";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import { Authenticator, AuthorizationError } from "remix-auth";
 import { FormStrategy } from "remix-auth-form";
+import { BlobServiceClient } from "@azure/storage-blob";
 import { nanoid } from "nanoid";
 import { gsap } from "gsap";
 import { useNavigate as useNavigate$1 } from "react-router-dom";
@@ -148,82 +148,11 @@ const route0 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   default: App$1,
   links
 }, Symbol.toStringTag, { value: "Module" }));
-const CommunityOperated = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
-  const handleSearchClick = () => {
-    alert("Search clicked!");
-  };
-  const handleFileClick = () => {
-    window.location.href = "/404";
-  };
-  const { id } = useParams();
-  return /* @__PURE__ */ jsxs("div", { className: "flex flex-col h-screen p-4", children: [
-    /* @__PURE__ */ jsx(
-      "button",
-      {
-        className: "bg-blue-500 text-white py-2 px-4 rounded mb-4 self-start",
-        onClick: () => {
-          window.location.href = `/dash/${id}/upload-material`;
-        },
-        children: "Add New File"
-      }
-    ),
-    /* @__PURE__ */ jsxs("div", { className: "flex mb-4", children: [
-      /* @__PURE__ */ jsx(
-        "input",
-        {
-          type: "text",
-          placeholder: "Search files...",
-          value: searchTerm,
-          onChange: handleSearchChange,
-          className: "p-2 border rounded flex-grow"
-        }
-      ),
-      /* @__PURE__ */ jsx(
-        "button",
-        {
-          className: "bg-blue-500 text-white py-2 px-4 rounded ml-2",
-          onClick: handleSearchClick,
-          children: "Search"
-        }
-      )
-    ] }),
-    /* @__PURE__ */ jsx("div", { className: "flex-1 overflow-auto", children: /* @__PURE__ */ jsxs("table", { className: "min-w-full bg-white", children: [
-      /* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", { children: [
-        /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "File Name" }),
-        /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Date Created" }),
-        /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Tags" }),
-        /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Rating" })
-      ] }) }),
-      /* @__PURE__ */ jsxs("tbody", { children: [
-        /* @__PURE__ */ jsxs("tr", { children: [
-          /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: /* @__PURE__ */ jsx("a", { href: "#", onClick: handleFileClick, className: "text-blue-500", children: "File1.txt" }) }),
-          /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: "2023-01-01" }),
-          /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: "Tag1, Tag2" }),
-          /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: "⭐⭐⭐⭐⭐" })
-        ] }),
-        /* @__PURE__ */ jsxs("tr", { children: [
-          /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: /* @__PURE__ */ jsx("a", { href: "#", onClick: handleFileClick, className: "text-blue-500", children: "File2.txt" }) }),
-          /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: "2023-01-02" }),
-          /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: "Tag3, Tag4" }),
-          /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: "⭐⭐⭐⭐" })
-        ] })
-      ] })
-    ] }) })
-  ] });
-};
-const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
-  __proto__: null,
-  default: CommunityOperated
-}, Symbol.toStringTag, { value: "Module" }));
 dotenv.config();
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL
 });
-let sessionStorage$1 = createCookieSessionStorage({
+let sessionStorage = createCookieSessionStorage({
   cookie: {
     name: "_session",
     // use any name you want here
@@ -239,7 +168,8 @@ let sessionStorage$1 = createCookieSessionStorage({
     // enable this in prod only
   }
 });
-const authenticator = new Authenticator(sessionStorage$1, {
+let { getSession, commitSession, destroySession } = sessionStorage;
+const authenticator = new Authenticator(sessionStorage, {
   sessionKey: "sessionKey",
   // keep in sync
   sessionErrorKey: "sessionErrorKey"
@@ -283,12 +213,106 @@ authenticator.use(
     }
   })
 );
+const loader$3 = async ({ request }) => {
+  const client = await pool.connect();
+  try {
+    const user = await authenticator.isAuthenticated(request);
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+    const universityId = user == null ? void 0 : user.university_id;
+    const result = await client.query(
+      "SELECT * FROM files WHERE university_id = $1",
+      [universityId]
+    );
+    return json(result.rows);
+  } catch (error) {
+    console.error("Error fetching files:", error);
+    return json({ error: "Failed to fetch files" }, { status: 500 });
+  } finally {
+    client.release();
+  }
+};
+const CommunityOperated = () => {
+  const files = useLoaderData();
+  const [searchTerm, setSearchTerm] = useState("");
+  const { id } = useParams();
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
+  const handleSearchClick = () => {
+    alert("Search clicked!");
+  };
+  return /* @__PURE__ */ jsxs("div", { className: "flex flex-col h-screen p-4", children: [
+    /* @__PURE__ */ jsx(
+      "button",
+      {
+        className: "bg-blue-500 text-white py-2 px-4 rounded mb-4 self-start",
+        onClick: () => {
+          window.location.href = `/dash/${id}/upload-material`;
+        },
+        children: "Add New File"
+      }
+    ),
+    /* @__PURE__ */ jsxs("div", { className: "flex mb-4", children: [
+      /* @__PURE__ */ jsx(
+        "input",
+        {
+          type: "text",
+          placeholder: "Search files...",
+          value: searchTerm,
+          onChange: handleSearchChange,
+          className: "p-2 border rounded flex-grow"
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          className: "bg-blue-500 text-white py-2 px-4 rounded ml-2",
+          onClick: handleSearchClick,
+          children: "Search"
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsx("div", { className: "flex-1 overflow-auto", children: /* @__PURE__ */ jsxs("table", { className: "min-w-full bg-white", children: [
+      /* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", { children: [
+        /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "File Name" }),
+        /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Description" }),
+        /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Upload Date" }),
+        /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Average Rating" })
+      ] }) }),
+      /* @__PURE__ */ jsx("tbody", { children: files == null ? void 0 : files.map((file) => /* @__PURE__ */ jsxs("tr", { children: [
+        /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: /* @__PURE__ */ jsx(
+          "a",
+          {
+            href: file.file_url,
+            target: "_blank",
+            rel: "noopener noreferrer",
+            className: "text-blue-500",
+            children: file.title
+          }
+        ) }),
+        /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: file.description }),
+        /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: new Date(file.upload_date).toLocaleDateString() }),
+        /* @__PURE__ */ jsxs("td", { className: "py-2 px-4 border-b text-center", children: [
+          file.average_rating.toFixed(1),
+          " ★"
+        ] })
+      ] }, file.id)) })
+    ] }) })
+  ] });
+};
+const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: CommunityOperated,
+  loader: loader$3
+}, Symbol.toStringTag, { value: "Module" }));
 let loader$2 = async ({ request }) => {
   return await authenticator.isAuthenticated(request, {
-    failureRedirect: "/login"
+    failureRedirect: "/sign-in"
   });
 };
-const action$3 = async ({ request }) => {
+const action$4 = async ({ request }) => {
   var _a, _b;
   try {
     const formData = await request.formData();
@@ -423,11 +447,11 @@ function StudyMaterial() {
 }
 const route2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  action: action$3,
+  action: action$4,
   default: StudyMaterial,
   loader: loader$2
 }, Symbol.toStringTag, { value: "Module" }));
-const action$2 = async ({ request }) => {
+const action$3 = async ({ request }) => {
   const formData = await request.formData();
   const firstName = formData.get("firstName");
   const lastName = formData.get("lastName");
@@ -694,7 +718,7 @@ function SignUpForm$1() {
 }
 const route3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  action: action$2,
+  action: action$3,
   default: SignUpForm$1
 }, Symbol.toStringTag, { value: "Module" }));
 function validatePassword(password) {
@@ -728,7 +752,7 @@ let loader$1 = async () => {
     return json({ error: "Failed to fetch universities" });
   }
 };
-const action$1 = async ({ request }) => {
+const action$2 = async ({ request }) => {
   var _a, _b;
   const formData = await request.formData();
   const firstName = formData.get("firstName");
@@ -778,7 +802,7 @@ const action$1 = async ({ request }) => {
       [id_val, full_name, universityEmail, hashedPassword, "student"]
     );
     const { id } = useParams();
-    return redirect(`/dash/${id}`);
+    return redirect("/sign-in");
   } catch (error) {
     if (error.code === "23505" && error.detail.includes("Key (email)")) {
       return json({ error: "Email already exists" });
@@ -1063,7 +1087,7 @@ function SignUpForm() {
 }
 const route4 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  action: action$1,
+  action: action$2,
   default: SignUpForm,
   loader: loader$1
 }, Symbol.toStringTag, { value: "Module" }));
@@ -1088,31 +1112,18 @@ function Sidebar() {
     )
   ] }) });
 }
-function handleLogout() {
-  sessionStorage.removeItem("user");
-}
 function Navbar() {
   useNavigate();
   return /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between bg-gray-400/70 backdrop-blur-lg text-white h-[70px] p-4", children: [
     /* @__PURE__ */ jsx("div", { className: "p-4 text-lg font-bold", children: /* @__PURE__ */ jsx(
       "img",
       {
-        src: "/public/logo_UniNet_text.png",
+        src: "/logo_UniNet_text.png",
         alt: "Uninet Logo",
         className: "h-8 w-[150px]"
       }
     ) }),
-    /* @__PURE__ */ jsxs("div", { className: "flex items-center space-x-4", children: [
-      /* @__PURE__ */ jsx("button", { className: "text-black hover:text-gray-500", children: "Profile" }),
-      /* @__PURE__ */ jsx(
-        "button",
-        {
-          onClick: handleLogout,
-          className: "text-black hover:text-gray-500",
-          children: "Logout"
-        }
-      )
-    ] })
+    /* @__PURE__ */ jsx("div", { className: "flex items-center space-x-4", children: /* @__PURE__ */ jsx(Form, { method: "post", action: "/log-out", children: /* @__PURE__ */ jsx("button", { type: "submit", className: "text-white", children: "Logout" }) }) })
   ] });
 }
 function DashboardLayout() {
@@ -1131,7 +1142,7 @@ const route5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   __proto__: null,
   default: Dashboard
 }, Symbol.toStringTag, { value: "Module" }));
-const action = async ({ request, context }) => {
+const action$1 = async ({ request, context }) => {
   const resp = await authenticator.authenticate("form", request, {
     successRedirect: "/dash/id",
     failureRedirect: "/sign-in",
@@ -1145,7 +1156,7 @@ const loader = async ({ request }) => {
   await authenticator.isAuthenticated(request, {
     successRedirect: "/dash/id"
   });
-  const session = await sessionStorage$1.getSession(
+  const session = await sessionStorage.getSession(
     request.headers.get("Cookie")
   );
   const error = session.get("sessionErrorKey");
@@ -1264,9 +1275,21 @@ function LoginPage() {
 }
 const route6 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  action,
+  action: action$1,
   default: LoginPage,
   loader
+}, Symbol.toStringTag, { value: "Module" }));
+const action = async ({ request }) => {
+  const session = await getSession(request.headers.get("Cookie"));
+  return redirect("/sign-in", {
+    headers: {
+      "Set-Cookie": await destroySession(session)
+    }
+  });
+};
+const route7 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  action
 }, Symbol.toStringTag, { value: "Module" }));
 const HelloText = () => {
   const textRef = useRef(null);
@@ -1341,7 +1364,7 @@ function NotFound() {
     /* @__PURE__ */ jsx(Link, { to: "/", className: "text-blue-500 hover:underline", children: "Go back to the homepage" })
   ] });
 }
-const route8 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route9 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: NotFound
 }, Symbol.toStringTag, { value: "Module" }));
@@ -1376,12 +1399,12 @@ const App = () => {
 const CatchBoundary = () => {
   return /* @__PURE__ */ jsx(NotFound, {});
 };
-const route7 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route8 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   CatchBoundary,
   default: App
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-CawMMEbP.js", "imports": ["/assets/index-DoaAZ6RU.js", "/assets/components-CrS9CztZ.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-D3zR4soS.js", "imports": ["/assets/index-DoaAZ6RU.js", "/assets/components-CrS9CztZ.js"], "css": ["/assets/root-nBL1rjIG.css"] }, "routes/dash._student.$id.community-operated": { "id": "routes/dash._student.$id.community-operated", "parentId": "routes/dash._student.$id", "path": "community-operated", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.community-operated-DlqrwcwT.js", "imports": ["/assets/index-DoaAZ6RU.js"], "css": [] }, "routes/dash._student.$id.upload-material": { "id": "routes/dash._student.$id.upload-material", "parentId": "routes/dash._student.$id", "path": "upload-material", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.upload-material-CUflLEwL.js", "imports": ["/assets/index-DoaAZ6RU.js", "/assets/components-CrS9CztZ.js"], "css": [] }, "routes/_auth.sign-up-college": { "id": "routes/_auth.sign-up-college", "parentId": "root", "path": "sign-up-college", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-college-COuOYsTd.js", "imports": ["/assets/index-DoaAZ6RU.js", "/assets/components-CrS9CztZ.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-up-student": { "id": "routes/_auth.sign-up-student", "parentId": "root", "path": "sign-up-student", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-student-pWk-EAHZ.js", "imports": ["/assets/index-DoaAZ6RU.js", "/assets/components-CrS9CztZ.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/dash._student.$id": { "id": "routes/dash._student.$id", "parentId": "root", "path": "dash/:id", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id-BB7tr9SB.js", "imports": ["/assets/index-DoaAZ6RU.js"], "css": [] }, "routes/_auth.sign-in": { "id": "routes/_auth.sign-in", "parentId": "root", "path": "sign-in", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-in-uNBSEC7J.js", "imports": ["/assets/index-DoaAZ6RU.js", "/assets/components-CrS9CztZ.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-XBADPTYd.js", "imports": ["/assets/index-DoaAZ6RU.js", "/assets/index-DjKJqAo0.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/404": { "id": "routes/404", "parentId": "root", "path": "404", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/404-B1dH8qYw.js", "imports": ["/assets/index-DoaAZ6RU.js", "/assets/index-DjKJqAo0.js", "/assets/components-CrS9CztZ.js"], "css": [] } }, "url": "/assets/manifest-f47ce824.js", "version": "f47ce824" };
+const serverManifest = { "entry": { "module": "/assets/entry.client-B9VSw_Qg.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-D4Ts-zwB.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/root-nBL1rjIG.css"] }, "routes/dash._student.$id.community-operated": { "id": "routes/dash._student.$id.community-operated", "parentId": "routes/dash._student.$id", "path": "community-operated", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.community-operated-BC1gHfJh.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/dash._student.$id.upload-material": { "id": "routes/dash._student.$id.upload-material", "parentId": "routes/dash._student.$id", "path": "upload-material", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.upload-material-9gLIX0H2.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/_auth.sign-up-college": { "id": "routes/_auth.sign-up-college", "parentId": "root", "path": "sign-up-college", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-college-BqFQHDoA.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-up-student": { "id": "routes/_auth.sign-up-student", "parentId": "root", "path": "sign-up-student", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-student-COofxwIC.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/dash._student.$id": { "id": "routes/dash._student.$id", "parentId": "root", "path": "dash/:id", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id-4ow60LKk.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/_auth.sign-in": { "id": "routes/_auth.sign-in", "parentId": "root", "path": "sign-in", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-in-7HSbZAEy.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/log-out": { "id": "routes/log-out", "parentId": "root", "path": "log-out", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/log-out-l0sNRNKZ.js", "imports": [], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-ly3kyYAp.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/404": { "id": "routes/404", "parentId": "root", "path": "404", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/404-DTNY1P7q.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js", "/assets/components-C9d7fhEX.js"], "css": [] } }, "url": "/assets/manifest-47b33c5c.js", "version": "47b33c5c" };
 const mode = "production";
 const assetsBuildDirectory = "build/client";
 const basename = "/";
@@ -1446,13 +1469,21 @@ const routes = {
     caseSensitive: void 0,
     module: route6
   },
+  "routes/log-out": {
+    id: "routes/log-out",
+    parentId: "root",
+    path: "log-out",
+    index: void 0,
+    caseSensitive: void 0,
+    module: route7
+  },
   "routes/_index": {
     id: "routes/_index",
     parentId: "root",
     path: void 0,
     index: true,
     caseSensitive: void 0,
-    module: route7
+    module: route8
   },
   "routes/404": {
     id: "routes/404",
@@ -1460,7 +1491,7 @@ const routes = {
     path: "404",
     index: void 0,
     caseSensitive: void 0,
-    module: route8
+    module: route9
   }
 };
 export {
