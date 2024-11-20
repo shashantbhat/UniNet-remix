@@ -115,7 +115,7 @@ export const action: ActionFunction = async ({ request }) => {
             [id_val, full_name, universityEmail, hashedPassword, 'student']
         );
         const { id } = useParams();
-        return redirect(`/dash/${id}`);
+        return redirect("/sign-in");
 
     } catch (error: any) {
         if (error.code === '23505' && error.detail.includes('Key (email)')) {
