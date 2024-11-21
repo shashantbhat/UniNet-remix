@@ -1,7 +1,7 @@
 import { jsx, jsxs } from "react/jsx-runtime";
 import { PassThrough } from "node:stream";
 import { createReadableStreamFromReadable, createCookieSessionStorage, json, redirect } from "@remix-run/node";
-import { RemixServer, Outlet, Meta, Links, ScrollRestoration, Scripts, useLoaderData, useParams, useActionData, Form, useNavigate, Link } from "@remix-run/react";
+import { RemixServer, Outlet, Meta, Links, ScrollRestoration, Scripts, useLoaderData, useParams, Form, useActionData, useNavigate, Link } from "@remix-run/react";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 import { useState, useEffect, useRef } from "react";
@@ -213,7 +213,7 @@ authenticator.use(
     }
   })
 );
-const loader$3 = async ({ request }) => {
+const loader$4 = async ({ request }) => {
   const client = await pool.connect();
   try {
     const user = await authenticator.isAuthenticated(request);
@@ -285,7 +285,7 @@ const CommunityOperated = () => {
         /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: /* @__PURE__ */ jsx(
           "a",
           {
-            href: file.file_url,
+            href: `/dash/id/files/${file.id}`,
             target: "_blank",
             rel: "noopener noreferrer",
             className: "text-blue-500",
@@ -305,14 +305,14 @@ const CommunityOperated = () => {
 const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: CommunityOperated,
-  loader: loader$3
+  loader: loader$4
 }, Symbol.toStringTag, { value: "Module" }));
-let loader$2 = async ({ request }) => {
+let loader$3 = async ({ request }) => {
   return await authenticator.isAuthenticated(request, {
     failureRedirect: "/sign-in"
   });
 };
-const action$4 = async ({ request }) => {
+const action$5 = async ({ request }) => {
   var _a, _b;
   try {
     const formData = await request.formData();
@@ -447,8 +447,125 @@ function StudyMaterial() {
 }
 const route2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  action: action$4,
+  action: action$5,
   default: StudyMaterial,
+  loader: loader$3
+}, Symbol.toStringTag, { value: "Module" }));
+async function loader$2({ params }) {
+  const client = await pool.connect();
+  const result = await client.query(
+    "SELECT * FROM files WHERE id = $1",
+    [params.fileid]
+  );
+  console.log(result.rows[0].title);
+  const result1 = await client.query("SELECT * FROM users WHERE id = $1", [
+    result.rows[0].uploader_id
+  ]);
+  const fileDetails = {
+    name: result.rows[0].title,
+    uploadedBy: result1.rows[0].name,
+    uploadDate: result.rows[0].upload_date,
+    downloadUrl: result.rows[0].file_url
+  };
+  const result2 = await client.query("SELECT ratings.rater_id, ratings.rating, ratings.comment, ratings.created_at, users.name as rater_name FROM ratings JOIN users ON ratings.rater_id = users.id WHERE ratings.file_id = $1", [params.fileid]);
+  const comments = result2.rows.map((row) => ({
+    id: row.rater_id,
+    user: row.rater_name,
+    comment: row.comment,
+    rating: row.rating
+  }));
+  return json({ fileDetails, comments });
+}
+async function action$4({ request, params }) {
+  const formData = await request.formData();
+  const { id: userId } = await authenticator.isAuthenticated(request);
+  console.log(formData.get("comment"));
+  console.log(formData.get("rating"));
+  console.log(userId);
+  const client = await pool.connect();
+  client.query(
+    "INSERT INTO ratings (rater_id, file_id, rating, comment) VALUES ($1, $2, $3, $4)",
+    [userId, params.fileid, formData.get("rating"), formData.get("comment")]
+  );
+  const result = await client.query("SELECT AVG(rating) as average_rating FROM ratings WHERE file_id = $1", [params.fileid]);
+  console.log(result.rows[0].average_rating);
+  client.query("UPDATE files SET average_rating = $1 WHERE id = $2", [result.rows[0].average_rating, params.fileid]);
+  return json({ success: true });
+}
+function Dashboard$1() {
+  const { fileDetails, comments } = useLoaderData();
+  const [rating, setRating] = useState(0);
+  return /* @__PURE__ */ jsxs("div", { className: "p-6", children: [
+    /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold mb-6", children: "File Details" }),
+    /* @__PURE__ */ jsxs("div", { className: "bg-white p-4 rounded-lg shadow mb-6", children: [
+      /* @__PURE__ */ jsx("h2", { className: "text-xl mb-2", children: fileDetails.name }),
+      /* @__PURE__ */ jsxs("p", { children: [
+        "Uploaded by: ",
+        fileDetails.uploadedBy
+      ] }),
+      /* @__PURE__ */ jsxs("p", { children: [
+        "Date: ",
+        fileDetails.uploadDate
+      ] }),
+      /* @__PURE__ */ jsx(
+        "a",
+        {
+          href: fileDetails.downloadUrl,
+          className: "inline-block bg-blue-500 text-white px-4 py-2 rounded mt-2",
+          download: true,
+          children: "Download File"
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsxs(Form, { method: "post", className: "bg-white p-4 rounded-lg shadow mb-6", children: [
+      /* @__PURE__ */ jsxs("div", { className: "mb-4", children: [
+        /* @__PURE__ */ jsx("label", { className: "block mb-2", children: "Rating:" }),
+        /* @__PURE__ */ jsx("div", { className: "flex gap-2", children: [1, 2, 3, 4, 5].map((star) => /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            onClick: () => setRating(star),
+            className: `text-2xl ${rating >= star ? "text-yellow-400" : "text-gray-300"}`,
+            children: "★"
+          },
+          star
+        )) })
+      ] }),
+      /* @__PURE__ */ jsx("input", { type: "hidden", name: "rating", value: rating }),
+      /* @__PURE__ */ jsx(
+        "textarea",
+        {
+          name: "comment",
+          className: "w-full border p-2 rounded",
+          placeholder: "Write your comment...",
+          rows: 3
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          type: "submit",
+          className: "bg-blue-500 text-white px-4 py-2 rounded mt-2",
+          children: "Submit Review"
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsxs("div", { className: "bg-white p-4 rounded-lg shadow", children: [
+      /* @__PURE__ */ jsx("h2", { className: "text-xl mb-4", children: "Previous Comments" }),
+      comments.map((comment) => /* @__PURE__ */ jsxs("div", { className: "border-b py-3", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
+          /* @__PURE__ */ jsx("strong", { children: comment.user }),
+          /* @__PURE__ */ jsx("span", { className: "text-yellow-400", children: "★".repeat(comment.rating) })
+        ] }),
+        /* @__PURE__ */ jsx("p", { className: "mt-2", children: comment.comment })
+      ] }, comment.id))
+    ] })
+  ] });
+}
+const route3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  action: action$4,
+  default: Dashboard$1,
   loader: loader$2
 }, Symbol.toStringTag, { value: "Module" }));
 const action$3 = async ({ request }) => {
@@ -716,7 +833,7 @@ function SignUpForm$1() {
     }
   ) }) }) });
 }
-const route3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route4 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   action: action$3,
   default: SignUpForm$1
@@ -1085,7 +1202,7 @@ function SignUpForm() {
     ] })
   ] }) }) }) });
 }
-const route4 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   action: action$2,
   default: SignUpForm,
@@ -1138,7 +1255,7 @@ function DashboardLayout() {
 function Dashboard() {
   return /* @__PURE__ */ jsx(DashboardLayout, {});
 }
-const route5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route6 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: Dashboard
 }, Symbol.toStringTag, { value: "Module" }));
@@ -1273,7 +1390,7 @@ function LoginPage() {
     }
   ) });
 }
-const route6 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route7 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   action: action$1,
   default: LoginPage,
@@ -1287,7 +1404,7 @@ const action = async ({ request }) => {
     }
   });
 };
-const route7 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route8 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   action
 }, Symbol.toStringTag, { value: "Module" }));
@@ -1364,7 +1481,7 @@ function NotFound() {
     /* @__PURE__ */ jsx(Link, { to: "/", className: "text-blue-500 hover:underline", children: "Go back to the homepage" })
   ] });
 }
-const route9 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route10 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: NotFound
 }, Symbol.toStringTag, { value: "Module" }));
@@ -1399,12 +1516,12 @@ const App = () => {
 const CatchBoundary = () => {
   return /* @__PURE__ */ jsx(NotFound, {});
 };
-const route8 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const route9 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   CatchBoundary,
   default: App
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-B9VSw_Qg.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-D4Ts-zwB.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/root-nBL1rjIG.css"] }, "routes/dash._student.$id.community-operated": { "id": "routes/dash._student.$id.community-operated", "parentId": "routes/dash._student.$id", "path": "community-operated", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.community-operated-BC1gHfJh.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/dash._student.$id.upload-material": { "id": "routes/dash._student.$id.upload-material", "parentId": "routes/dash._student.$id", "path": "upload-material", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.upload-material-9gLIX0H2.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/_auth.sign-up-college": { "id": "routes/_auth.sign-up-college", "parentId": "root", "path": "sign-up-college", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-college-BqFQHDoA.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-up-student": { "id": "routes/_auth.sign-up-student", "parentId": "root", "path": "sign-up-student", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-student-COofxwIC.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/dash._student.$id": { "id": "routes/dash._student.$id", "parentId": "root", "path": "dash/:id", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id-4ow60LKk.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/_auth.sign-in": { "id": "routes/_auth.sign-in", "parentId": "root", "path": "sign-in", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-in-7HSbZAEy.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/log-out": { "id": "routes/log-out", "parentId": "root", "path": "log-out", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/log-out-l0sNRNKZ.js", "imports": [], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-ly3kyYAp.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/404": { "id": "routes/404", "parentId": "root", "path": "404", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/404-DTNY1P7q.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js", "/assets/components-C9d7fhEX.js"], "css": [] } }, "url": "/assets/manifest-47b33c5c.js", "version": "47b33c5c" };
+const serverManifest = { "entry": { "module": "/assets/entry.client-B9VSw_Qg.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-DwNI8XdG.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/root-DkjWsVIG.css"] }, "routes/dash._student.$id.community-operated": { "id": "routes/dash._student.$id.community-operated", "parentId": "routes/dash._student.$id", "path": "community-operated", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.community-operated-xOSvIBSr.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/dash._student.$id.upload-material": { "id": "routes/dash._student.$id.upload-material", "parentId": "routes/dash._student.$id", "path": "upload-material", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.upload-material-9gLIX0H2.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/dash._student.$id.files.$fileid": { "id": "routes/dash._student.$id.files.$fileid", "parentId": "routes/dash._student.$id", "path": "files/:fileid", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.files._fileid-D-4bV-m_.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/_auth.sign-up-college": { "id": "routes/_auth.sign-up-college", "parentId": "root", "path": "sign-up-college", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-college-BqFQHDoA.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-up-student": { "id": "routes/_auth.sign-up-student", "parentId": "root", "path": "sign-up-student", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-student-COofxwIC.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/dash._student.$id": { "id": "routes/dash._student.$id", "parentId": "root", "path": "dash/:id", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id-4ow60LKk.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/_auth.sign-in": { "id": "routes/_auth.sign-in", "parentId": "root", "path": "sign-in", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-in-7HSbZAEy.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/log-out": { "id": "routes/log-out", "parentId": "root", "path": "log-out", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/log-out-l0sNRNKZ.js", "imports": [], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-ly3kyYAp.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/404": { "id": "routes/404", "parentId": "root", "path": "404", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/404-DTNY1P7q.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js", "/assets/components-C9d7fhEX.js"], "css": [] } }, "url": "/assets/manifest-bb7a2589.js", "version": "bb7a2589" };
 const mode = "production";
 const assetsBuildDirectory = "build/client";
 const basename = "/";
@@ -1437,13 +1554,21 @@ const routes = {
     caseSensitive: void 0,
     module: route2
   },
+  "routes/dash._student.$id.files.$fileid": {
+    id: "routes/dash._student.$id.files.$fileid",
+    parentId: "routes/dash._student.$id",
+    path: "files/:fileid",
+    index: void 0,
+    caseSensitive: void 0,
+    module: route3
+  },
   "routes/_auth.sign-up-college": {
     id: "routes/_auth.sign-up-college",
     parentId: "root",
     path: "sign-up-college",
     index: void 0,
     caseSensitive: void 0,
-    module: route3
+    module: route4
   },
   "routes/_auth.sign-up-student": {
     id: "routes/_auth.sign-up-student",
@@ -1451,7 +1576,7 @@ const routes = {
     path: "sign-up-student",
     index: void 0,
     caseSensitive: void 0,
-    module: route4
+    module: route5
   },
   "routes/dash._student.$id": {
     id: "routes/dash._student.$id",
@@ -1459,7 +1584,7 @@ const routes = {
     path: "dash/:id",
     index: void 0,
     caseSensitive: void 0,
-    module: route5
+    module: route6
   },
   "routes/_auth.sign-in": {
     id: "routes/_auth.sign-in",
@@ -1467,7 +1592,7 @@ const routes = {
     path: "sign-in",
     index: void 0,
     caseSensitive: void 0,
-    module: route6
+    module: route7
   },
   "routes/log-out": {
     id: "routes/log-out",
@@ -1475,7 +1600,7 @@ const routes = {
     path: "log-out",
     index: void 0,
     caseSensitive: void 0,
-    module: route7
+    module: route8
   },
   "routes/_index": {
     id: "routes/_index",
@@ -1483,7 +1608,7 @@ const routes = {
     path: void 0,
     index: true,
     caseSensitive: void 0,
-    module: route8
+    module: route9
   },
   "routes/404": {
     id: "routes/404",
@@ -1491,7 +1616,7 @@ const routes = {
     path: "404",
     index: void 0,
     caseSensitive: void 0,
-    module: route9
+    module: route10
   }
 };
 export {

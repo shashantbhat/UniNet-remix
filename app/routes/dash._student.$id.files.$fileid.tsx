@@ -1,8 +1,9 @@
 import { useParams, Form, useLoaderData } from "@remix-run/react";
-import { LoaderFunctionArgs, json, ActionFunctionArgs } from "@remix-run/node";
+import { LoaderFunctionArgs, json, ActionFunctionArgs,LoaderFunction} from "@remix-run/node";
 import { useState } from "react";
 import DashboardLayout from "~/components/dashboard_layout";
 import pool from "~/utils/db.server";
+import authenticator from "~/utils/auth.server";
 
 type FileDetails = {
   name: string;
@@ -47,13 +48,28 @@ export async function loader({ params }: LoaderFunctionArgs) {
   return json({ fileDetails, comments });
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
-  // TODO: Implement comment submission logic
-  // log rating and comment
+  // Extract user ID
+  const { id: userId } = await authenticator.isAuthenticated(request);
+
+  // Log rating, comment, and user ID
   console.log(formData.get("comment"));
   console.log(formData.get("rating"));
-  
+  console.log(userId); // Log user ID here
+  const client = await pool.connect();
+  client.query(
+    "INSERT INTO ratings (rater_id, file_id, rating, comment) VALUES ($1, $2, $3, $4)",
+    [userId, params.fileid, formData.get("rating"), formData.get("comment")]
+  );
+
+  // Scan through all the ratings for the file calculate the average rating 
+  const result = await client.query("SELECT AVG(rating) as average_rating FROM ratings WHERE file_id = $1", [params.fileid]);
+  console.log(result.rows[0].average_rating);
+  // Update the average rating in the files table
+  client.query("UPDATE files SET average_rating = $1 WHERE id = $2", [result.rows[0].average_rating, params.fileid]);
+
+
   return json({ success: true });
 }
 
@@ -79,39 +95,6 @@ export default function Dashboard() {
         </a>
       </div>
 
-      {/* Rating and Comment Form */}
-      {/* <Form method="post" className="bg-white p-4 rounded-lg shadow mb-6">
-        <div className="mb-4">
-          <label className="block mb-2">Rating:</label>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                type="button"
-                name="rating"
-                onClick={() => setRating(star)}
-                className={`text-2xl ${
-                  rating >= star ? "text-yellow-400" : "text-gray-300"
-                }`}
-              >
-                ★
-              </button>
-            ))}
-          </div>
-        </div>
-        <textarea
-          name="comment"
-          className="w-full border p-2 rounded"
-          placeholder="Write your comment..."
-          rows={3}
-        />
-        <button
-          type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded mt-2"
-        >
-          Submit Review
-        </button>
-      </Form> */}
       <Form method="post" className="bg-white p-4 rounded-lg shadow mb-6">
         <div className="mb-4">
           <label className="block mb-2">Rating:</label>
