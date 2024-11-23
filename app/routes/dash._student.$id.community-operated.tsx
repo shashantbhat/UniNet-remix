@@ -137,6 +137,7 @@ export const loader: LoaderFunction = async ({ request }) => {
 };
 
 const CommunityOperated = () => {
+  
   const files = useLoaderData(); // Files data filtered by university
   const [searchTerm, setSearchTerm] = useState("");
   const { id } = useParams();
@@ -189,7 +190,8 @@ const CommunityOperated = () => {
               <tr key={file.id}>
                 <td className="py-2 px-4 border-b text-center">
                   <a
-                    href={file.file_url} // Link to the file URL
+                    // href={file.file_url}
+                    href={`/dash/id/files/${file.id}`} // Link to the file URL
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-500"
