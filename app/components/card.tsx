@@ -35,7 +35,7 @@ export function CardRevealedPointer() {
       {/* Card content */}
       <div className="relative flex flex-col gap-3 rounded-xl border border-white/10 px-4 py-5">
         <div className="space-y-2">
-          <h3 className="text-xl font-semibold text-neutral-200">From The Developers</h3>
+          <h3 className="text-xl font-semibold text-neutral-200">From The Developers🚀</h3>
           <p className="text-sm leading-[1.5] text-neutral-400">
             UniNet is still is in development. 
             We are working hard to make it,
@@ -50,4 +50,23 @@ export function CardRevealedPointer() {
     </div>
   );
 }
+
+export function CardBackgroundShine() {
+  return (
+    <div className="inline-flex w-full max-w-[350px] animate-shine items-center justify-center rounded-xl border border-white/10 bg-[linear-gradient(110deg,#000103,45%,#303030,55%,#000103)] bg-[length:400%_100%] px-4 py-5 text-sm transition-colors">
+      <div className="flex flex-col gap-2">
+        <h3 className="text-xl font-semibold text-neutral-200">Hey Mates👋🏻</h3>
+        <p className="text-sm leading-[1.5] text-neutral-400">
+          Lets build the community strongs💪🌐. 
+          As per now the Community operated section is functional.
+          Try that out, help the other users, share your knowledge.
+          Don't forget to give your feedback on the files.
+          Helps you to get the best out of UniNet.
+          And for us to optimize our cloud storage☺️.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 

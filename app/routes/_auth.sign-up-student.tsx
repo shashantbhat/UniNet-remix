@@ -133,8 +133,6 @@ export const action: ActionFunction = async ({ request }) => {
             return json({ error: 'Email already exists' }, { status: 400 });
         }
 
-        // Log error but don't expose details to user
-        console.error("Error inserting user data:", error);
         return json(
             { error: "There was an issue creating your account" }, 
             { status: 500 }
