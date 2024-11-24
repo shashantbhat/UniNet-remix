@@ -15,7 +15,7 @@ export default function Sidebar() {
         {/* Dropdown Header */}
         <button
           onClick={toggleDropdown}
-          className="flex items-center justify-between w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          className="flex items-center justify-between mt-2 mb-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <span className="font-medium">Study Material</span>
           <svg
@@ -34,7 +34,6 @@ export default function Sidebar() {
             />
           </svg>
         </button>
-
         {/* Dropdown Content */}
         {isOpen && (
           <div className="pl-4 mt-2 space-y-2">
@@ -52,6 +51,31 @@ export default function Sidebar() {
             </a>
           </div>
         )}
+        {/* Forward to 404 */}
+        <button
+          onClick={() => (window.location.href = "/404")}
+          className="flex items-center justify-between mt-2 mb-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <span className="font-medium">Mentoriship Program</span>
+        </button>
+        <button
+          onClick={() => (window.location.href = "/404")}
+          className="flex items-center justify-between mt-2 mb-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <span className="font-medium">Car Pooling</span>
+        </button>
+        <button
+          onClick={() => (window.location.href = "/404")}
+          className="flex items-center justify-between mt-2 mb-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <span className="font-medium">Accommodation</span>
+        </button>
+        <button
+          onClick={() => (window.location.href = "/404")}
+          className="flex items-center justify-between mt-2 mb-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <span className="font-medium">Campus Dating</span>
+        </button>
       </nav>
     </div>
   );
