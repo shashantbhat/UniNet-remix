@@ -91,11 +91,11 @@ const App: React.FC = () => {
 
         // Fade out HelloText and then fade in Welcome text
         timeline
-            .to(helloElement, { opacity: 0, duration: 1, delay: 2 }) // Fade out HelloText
+            .to(helloElement, { opacity: 0, duration: 1, delay: 1 }) // Fade out HelloText
             .to(helloElement, { display: 'none' }) // Hide the hello element after fade out
             .set(welcomeElement, { display: 'flex' }) // Show the welcome element
-            .to(welcomeElement, { opacity: 1, duration: 2, delay: 1 }) // Fade in the welcome element
-            .to(welcomeElement, { opacity: 0, duration: 2, delay: 1, onComplete: () => {
+            .to(welcomeElement, { opacity: 1, duration: 1, delay: 0.5 }) // Fade in the welcome element
+            .to(welcomeElement, { opacity: 0, duration: 1, delay: 0.5, onComplete: () => {
                     // Redirect to sign-in after the welcome animation completes
                     navigate('/sign-in');
                 }}); // Fade out the welcome element before redirecting
