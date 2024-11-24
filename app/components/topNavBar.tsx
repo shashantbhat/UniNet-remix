@@ -11,6 +11,7 @@ export default function Navbar() {
           src="/logo_UniNet_text.png" // Corrected path
           alt="Uninet Logo"
           className="h-6 w-auto" 
+          onClick={() => navigate("/dash/id")}
         />
       </div>
       <div className="flex items-center space-x-4">

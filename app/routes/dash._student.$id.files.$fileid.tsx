@@ -1,15 +1,20 @@
+// app/routes/dash._student.$id.files.$fileid.tsx
 import { useParams, Form, useLoaderData } from "@remix-run/react";
-import { LoaderFunctionArgs, json, ActionFunctionArgs,LoaderFunction} from "@remix-run/node";
+import {
+  LoaderFunctionArgs,
+  json,
+  ActionFunctionArgs,
+  LoaderFunction,
+} from "@remix-run/node";
 import { useState } from "react";
 import DashboardLayout from "~/components/dashboard_layout";
 import pool from "~/utils/db.server";
 import authenticator from "~/utils/auth.server";
 import { GoogleGenerativeAI } from "@google/generative-ai"; // Use import instead of require
 
-
 type FileDetails = {
   name: string;
-  description:string;
+  description: string;
   uploadedBy: string;
   uploadDate: string;
   downloadUrl: string;
@@ -57,6 +62,9 @@ export async function loader({ params }: LoaderFunctionArgs) {
   const genAI = new GoogleGenerativeAI(
     "AIzaSyAkBta4Gql98eHyenjI92zd4I-a_va11Fg"
   );
+  // const genAI = new GoogleGenerativeAI(
+  //   "AIzaSyAzyFs9KC5bZyhqQ17KTtAlSumzp89ne_o"
+  // );
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   // Pass all the ratings and comments to the model and ask it to provide an analysis of all the comments and ratings and tell if the file is good or bad.
@@ -65,10 +73,14 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
   console.log(ratings);
   console.log(comments_text);
-  
+
   // const prompt = "";
   const prompt = `
-You are an AI model that analyzes user feedback. Below are the ratings and comments provided by users for a specific file with name ${fileDetails.name} and desciption ${fileDetails.description}. Please analyze the feedback and provide a summary indicating whether the overall sentiment towards the file is positive, negative, or neutral. Additionally, highlight any common themes or issues mentioned by the users.
+You are an AI model that analyzes user feedback. Below are the ratings and comments provided by users for a specific file with name ${
+    fileDetails.name
+  } and desciption ${
+    fileDetails.description
+  }. Please analyze the feedback and provide a summary indicating whether the overall sentiment towards the file is positive, negative, or neutral. Additionally, highlight any common themes or issues mentioned by the users.
 
 Ratings:
 ${ratings.join(", ")}
@@ -79,12 +91,16 @@ ${comments_text.join("\n")}
 Based on the above ratings and comments, what is the overall sentiment towards the file? Is the file generally considered good or bad by the users? Please provide a detailed analysis in 50 words.
 `;
 
-  const ratings_summary = await model.generateContent(prompt);
-  console.log(ratings_summary.response.text());
-  const summary = ratings_summary.response.text();
-  //
+  let summary;
+  try {
+    const ratings_summary = await model.generateContent(prompt);
+    summary = ratings_summary.response.text();
+  } catch (error) {
+    console.error("Error connecting to NLP Sentiment Analysis Server:", error);
+    summary = "Error connecting to NLP Sentiment Analysis Server Error";
+  }
 
-  return json({ fileDetails, comments,summary });
+  return json({ fileDetails, comments, summary });
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -114,13 +130,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
     params.fileid,
   ]);
 
-  
-
   return json({ success: true });
 }
 
 export default function Dashboard() {
-  const { fileDetails, comments,summary } = useLoaderData<typeof loader>();
+  const { fileDetails, comments, summary } = useLoaderData<typeof loader>();
   const [rating, setRating] = useState(0);
 
   return (
@@ -166,7 +180,7 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
-{/* ADD COmment */}
+      {/* ADD COmment */}
       <Form method="post" className="bg-white p-4 rounded-lg shadow mt-6">
         <div className="mb-4">
           <label className="block mb-2">Rating:</label>
