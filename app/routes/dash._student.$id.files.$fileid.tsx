@@ -143,26 +143,30 @@ export default function Dashboard() {
 
       {/* File Info and Download Section */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <h2 className="text-xl mb-2">{fileDetails.name}</h2>
-        <h2 className="text-l mb-2">{fileDetails.description}</h2>
-        <p>
+        <h2 className="text-5xl mb-2">
+          <b>{fileDetails.name}</b>
+        </h2>
+        <h2 className="text-2xl mb-2">{fileDetails.description}</h2>
+        <p className="mb-1">
           <b>Uploaded by:</b> {fileDetails.uploadedBy}
         </p>
-        <p>
+        <p className="mb-1">
           <b>Date:</b> {fileDetails.uploadDate}
         </p>
-        <p>
-          <b>Summary:</b>
+        <p className="mb-1">
+          <b>AI File Sentiment Analysis:</b>
           <br />
           {summary}
         </p>
-        <a
-          href={fileDetails.downloadUrl}
-          className="inline-block bg-blue-500 text-white px-4 py-2 rounded mt-2"
-          download
-        >
-          Download File
-        </a>
+        <div className="mt-5 mb-2">
+          <a
+            href={fileDetails.downloadUrl}
+            className="border border-black bg-white text-black px-4 py-2 rounded-3xl hover:bg-gray-100 transition mr-1.5 w-full"
+            download
+          >
+            Download File
+          </a>
+        </div>
       </div>
 
       {/* Previous Comments */}
@@ -172,8 +176,12 @@ export default function Dashboard() {
           <div key={comment.id} className="border-b py-3">
             <div className="flex items-center justify-between">
               <strong>{comment.user}</strong>
-              <span className="text-yellow-400">
+              <span className="text-black-400">
                 {"★".repeat(comment.rating)}
+                {/* Space */}
+                {" ("}
+                {comment.rating}
+                {"/5)"}
               </span>
             </div>
             <p className="mt-2">{comment.comment}</p>
@@ -191,7 +199,7 @@ export default function Dashboard() {
                 type="button"
                 onClick={() => setRating(star)}
                 className={`text-2xl ${
-                  rating >= star ? "text-yellow-400" : "text-gray-300"
+                  rating >= star ? "text-black-400" : "text-gray-300"
                 }`}
               >
                 ★
@@ -208,7 +216,7 @@ export default function Dashboard() {
         />
         <button
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded mt-2"
+          className="border border-black bg-white text-black px-4 py-2 rounded-3xl hover:bg-gray-100 transition mr-1.5 mt-2"
         >
           Submit Review
         </button>
