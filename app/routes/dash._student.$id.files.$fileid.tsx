@@ -161,7 +161,7 @@ export default function Dashboard() {
         <div className="mt-5 mb-2">
           <a
             href={fileDetails.downloadUrl}
-            className="border border-black bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition mr-1.5 mt-2"
+            className="border border-black bg-white text-black px-4 py-2 rounded-3xl hover:bg-black hover:text-white transition mr-1.5 w-full mt-2"
             download
           >
             Download File
@@ -216,7 +216,7 @@ export default function Dashboard() {
         />
         <button
           type="submit"
-          className="border border-black bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition mr-1.5 mt-2"
+          className="border border-black bg-white text-black px-4 py-2 rounded-3xl hover:bg-black hover:text-white transition mr-1.5 mt-2"
         >
           Submit Review
         </button>
