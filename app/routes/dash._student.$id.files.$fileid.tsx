@@ -1,15 +1,20 @@
+// app/routes/dash._student.$id.files.$fileid.tsx
 import { useParams, Form, useLoaderData } from "@remix-run/react";
-import { LoaderFunctionArgs, json, ActionFunctionArgs,LoaderFunction} from "@remix-run/node";
+import {
+  LoaderFunctionArgs,
+  json,
+  ActionFunctionArgs,
+  LoaderFunction,
+} from "@remix-run/node";
 import { useState } from "react";
 import DashboardLayout from "~/components/dashboard_layout";
 import pool from "~/utils/db.server";
 import authenticator from "~/utils/auth.server";
 import { GoogleGenerativeAI } from "@google/generative-ai"; // Use import instead of require
 
-
 type FileDetails = {
   name: string;
-  description:string;
+  description: string;
   uploadedBy: string;
   uploadDate: string;
   downloadUrl: string;
@@ -57,6 +62,9 @@ export async function loader({ params }: LoaderFunctionArgs) {
   const genAI = new GoogleGenerativeAI(
     "AIzaSyAkBta4Gql98eHyenjI92zd4I-a_va11Fg"
   );
+  // const genAI = new GoogleGenerativeAI(
+  //   "AIzaSyAzyFs9KC5bZyhqQ17KTtAlSumzp89ne_o"
+  // );
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   // Pass all the ratings and comments to the model and ask it to provide an analysis of all the comments and ratings and tell if the file is good or bad.
@@ -65,10 +73,14 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
   console.log(ratings);
   console.log(comments_text);
-  
+
   // const prompt = "";
   const prompt = `
-You are an AI model that analyzes user feedback. Below are the ratings and comments provided by users for a specific file with name ${fileDetails.name} and desciption ${fileDetails.description}. Please analyze the feedback and provide a summary indicating whether the overall sentiment towards the file is positive, negative, or neutral. Additionally, highlight any common themes or issues mentioned by the users.
+You are an AI model that analyzes user feedback. Below are the ratings and comments provided by users for a specific file with name ${
+    fileDetails.name
+  } and desciption ${
+    fileDetails.description
+  }. Please analyze the feedback and provide a summary indicating whether the overall sentiment towards the file is positive, negative, or neutral. Additionally, highlight any common themes or issues mentioned by the users.
 
 Ratings:
 ${ratings.join(", ")}
@@ -79,12 +91,16 @@ ${comments_text.join("\n")}
 Based on the above ratings and comments, what is the overall sentiment towards the file? Is the file generally considered good or bad by the users? Please provide a detailed analysis in 50 words.
 `;
 
-  const ratings_summary = await model.generateContent(prompt);
-  console.log(ratings_summary.response.text());
-  const summary = ratings_summary.response.text();
-  //
+  let summary;
+  try {
+    const ratings_summary = await model.generateContent(prompt);
+    summary = ratings_summary.response.text();
+  } catch (error) {
+    console.error("Error connecting to NLP Sentiment Analysis Server:", error);
+    summary = "Error connecting to NLP Sentiment Analysis Server Error";
+  }
 
-  return json({ fileDetails, comments,summary });
+  return json({ fileDetails, comments, summary });
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -114,13 +130,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
     params.fileid,
   ]);
 
-  
-
   return json({ success: true });
 }
 
 export default function Dashboard() {
-  const { fileDetails, comments,summary } = useLoaderData<typeof loader>();
+  const { fileDetails, comments, summary } = useLoaderData<typeof loader>();
   const [rating, setRating] = useState(0);
 
   return (
@@ -129,26 +143,30 @@ export default function Dashboard() {
 
       {/* File Info and Download Section */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <h2 className="text-xl mb-2">{fileDetails.name}</h2>
-        <h2 className="text-l mb-2">{fileDetails.description}</h2>
-        <p>
+        <h2 className="text-5xl mb-2">
+          <b>{fileDetails.name}</b>
+        </h2>
+        <h2 className="text-2xl mb-2">{fileDetails.description}</h2>
+        <p className="mb-1">
           <b>Uploaded by:</b> {fileDetails.uploadedBy}
         </p>
-        <p>
+        <p className="mb-1">
           <b>Date:</b> {fileDetails.uploadDate}
         </p>
-        <p>
-          <b>Summary:</b>
+        <p className="mb-1">
+          <b>AI File Sentiment Analysis:</b>
           <br />
           {summary}
         </p>
-        <a
-          href={fileDetails.downloadUrl}
-          className="inline-block bg-blue-500 text-white px-4 py-2 rounded mt-2"
-          download
-        >
-          Download File
-        </a>
+        <div className="mt-5 mb-2">
+          <a
+            href={fileDetails.downloadUrl}
+            className="border border-black bg-white text-black px-4 py-2 rounded-3xl hover:bg-black hover:text-white transition mr-1.5 w-full mt-2"
+            download
+          >
+            Download File
+          </a>
+        </div>
       </div>
 
       {/* Previous Comments */}
@@ -158,15 +176,19 @@ export default function Dashboard() {
           <div key={comment.id} className="border-b py-3">
             <div className="flex items-center justify-between">
               <strong>{comment.user}</strong>
-              <span className="text-yellow-400">
+              <span className="text-black-400">
                 {"★".repeat(comment.rating)}
+                {/* Space */}
+                {" ("}
+                {comment.rating}
+                {"/5)"}
               </span>
             </div>
             <p className="mt-2">{comment.comment}</p>
           </div>
         ))}
       </div>
-{/* ADD COmment */}
+      {/* ADD COmment */}
       <Form method="post" className="bg-white p-4 rounded-lg shadow mt-6">
         <div className="mb-4">
           <label className="block mb-2">Rating:</label>
@@ -177,7 +199,7 @@ export default function Dashboard() {
                 type="button"
                 onClick={() => setRating(star)}
                 className={`text-2xl ${
-                  rating >= star ? "text-yellow-400" : "text-gray-300"
+                  rating >= star ? "text-black-400" : "text-gray-300"
                 }`}
               >
                 ★
@@ -194,7 +216,7 @@ export default function Dashboard() {
         />
         <button
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded mt-2"
+          className="border border-black bg-white text-black px-4 py-2 rounded-3xl hover:bg-black hover:text-white transition mr-1.5 mt-2"
         >
           Submit Review
         </button>

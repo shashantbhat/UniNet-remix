@@ -1,7 +1,7 @@
-import { jsx, jsxs } from "react/jsx-runtime";
+import { jsx, jsxs, Fragment } from "react/jsx-runtime";
 import { PassThrough } from "node:stream";
 import { createReadableStreamFromReadable, createCookieSessionStorage, json, redirect } from "@remix-run/node";
-import { RemixServer, Outlet, Meta, Links, ScrollRestoration, Scripts, useLoaderData, useParams, Form, useActionData, useNavigate, Link } from "@remix-run/react";
+import { RemixServer, Outlet, Meta, Links, ScrollRestoration, Scripts, useLoaderData, useParams, Form, useActionData, useNavigate as useNavigate$1, useLocation, Link } from "@remix-run/react";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 import { useState, useEffect, useRef } from "react";
@@ -11,9 +11,12 @@ import bcrypt from "bcrypt";
 import { Authenticator, AuthorizationError } from "remix-auth";
 import { FormStrategy } from "remix-auth-form";
 import { BlobServiceClient } from "@azure/storage-blob";
+import { useNavigate } from "react-router-dom";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { nanoid } from "nanoid";
+import { AnimatePresence, motion, useMotionValue, useMotionTemplate } from "framer-motion";
+import * as HoverCard from "@radix-ui/react-hover-card";
 import { gsap } from "gsap";
-import { useNavigate as useNavigate$1 } from "react-router-dom";
 const ABORT_DELAY = 5e3;
 function handleRequest(request, responseStatusCode, responseHeaders, remixContext, loadContext) {
   return isbot(request.headers.get("user-agent") || "") ? handleBotRequest(
@@ -235,72 +238,101 @@ const loader$4 = async ({ request }) => {
 };
 const CommunityOperated = () => {
   const files = useLoaderData();
-  const [searchTerm, setSearchTerm] = useState("");
+  useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const { id } = useParams();
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
+  const filteredFiles = files == null ? void 0 : files.filter(
+    (file) => file.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   const handleSearchClick = () => {
     alert("Search clicked!");
   };
-  return /* @__PURE__ */ jsxs("div", { className: "flex flex-col h-screen p-4", children: [
-    /* @__PURE__ */ jsx(
-      "button",
-      {
-        className: "bg-blue-500 text-white py-2 px-4 rounded mb-4 self-start",
-        onClick: () => {
-          window.location.href = `/dash/${id}/upload-material`;
-        },
-        children: "Add New File"
-      }
-    ),
-    /* @__PURE__ */ jsxs("div", { className: "flex mb-4", children: [
-      /* @__PURE__ */ jsx(
-        "input",
-        {
-          type: "text",
-          placeholder: "Search files...",
-          value: searchTerm,
-          onChange: handleSearchChange,
-          className: "p-2 border rounded flex-grow"
-        }
-      ),
-      /* @__PURE__ */ jsx(
-        "button",
-        {
-          className: "bg-blue-500 text-white py-2 px-4 rounded ml-2",
-          onClick: handleSearchClick,
-          children: "Search"
-        }
-      )
-    ] }),
-    /* @__PURE__ */ jsx("div", { className: "flex-1 overflow-auto", children: /* @__PURE__ */ jsxs("table", { className: "min-w-full bg-white", children: [
-      /* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", { children: [
-        /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "File Name" }),
-        /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Description" }),
-        /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Upload Date" }),
-        /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Average Rating" })
-      ] }) }),
-      /* @__PURE__ */ jsx("tbody", { children: files == null ? void 0 : files.map((file) => /* @__PURE__ */ jsxs("tr", { children: [
-        /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: /* @__PURE__ */ jsx(
-          "a",
-          {
-            href: `/dash/id/files/${file.id}`,
-            target: "_blank",
-            rel: "noopener noreferrer",
-            className: "text-blue-500",
-            children: file.title
-          }
-        ) }),
-        /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: file.description }),
-        /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: new Date(file.upload_date).toLocaleDateString() }),
-        /* @__PURE__ */ jsxs("td", { className: "py-2 px-4 border-b text-center", children: [
-          file.average_rating.toFixed(1),
-          " ★"
-        ] })
-      ] }, file.id)) })
-    ] }) })
-  ] });
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
+  return /* @__PURE__ */ jsx("div", { className: "flex flex-col h-screen p-4", children: /* @__PURE__ */ jsxs(
+    "div",
+    {
+      className: `flex flex-col gap-4 bg-gray-100 bg-opacity-75 rounded-3xl shadow-lg p-6 w-full transition-opacity duration-1000 ${isVisible ? "opacity-100" : "opacity-0"}`,
+      children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex justify-between items-center w-full", children: [
+          /* @__PURE__ */ jsxs(
+            "button",
+            {
+              className: "flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-2.5 px-4 rounded-xl text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5",
+              onClick: () => {
+                window.location.href = `/dash/${id}/upload-material`;
+              },
+              children: [
+                /* @__PURE__ */ jsx(
+                  "svg",
+                  {
+                    xmlns: "http://www.w3.org/2000/svg",
+                    width: "20",
+                    height: "20",
+                    fill: "currentColor",
+                    viewBox: "0 0 256 256",
+                    children: /* @__PURE__ */ jsx("path", { d: "M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-40-64a8,8,0,0,1-8,8H136v16a8,8,0,0,1-16,0V160H104a8,8,0,0,1,0-16h16V128a8,8,0,0,1,16,0v16h16A8,8,0,0,1,160,152Z" })
+                  }
+                ),
+                /* @__PURE__ */ jsx("span", { children: "Add File" })
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 w-1/3 min-w-[300px]", children: [
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                type: "text",
+                placeholder: "Search files",
+                value: searchQuery,
+                onChange: (e) => setSearchQuery(e.target.value),
+                className: "w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200"
+              }
+            ),
+            /* @__PURE__ */ jsxs(
+              "button",
+              {
+                className: "flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-2.5 px-4 rounded-xl text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5",
+                onClick: handleSearchClick,
+                children: [
+                  /* @__PURE__ */ jsx("svg", { xmlns: "http://www.w3.org/2000/svg", width: "22", height: "22", fill: "currentColor", viewBox: "0 0 256 256", children: /* @__PURE__ */ jsx("path", { d: "M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-45.54-48.85a36.05,36.05,0,1,0-11.31,11.31l11.19,11.2a8,8,0,0,0,11.32-11.32ZM104,148a20,20,0,1,1,20,20A20,20,0,0,1,104,148Z" }) }),
+                  /* @__PURE__ */ jsx("span", { children: "Search" })
+                ]
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx("div", { className: "flex-1 overflow-auto", children: /* @__PURE__ */ jsxs("table", { className: "min-w-full bg-white", children: [
+          /* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", { children: [
+            /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "File Name" }),
+            /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Description" }),
+            /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Upload Date" }),
+            /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Average Rating" })
+          ] }) }),
+          /* @__PURE__ */ jsx("tbody", { children: filteredFiles == null ? void 0 : filteredFiles.map((file) => /* @__PURE__ */ jsxs("tr", { children: [
+            /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: /* @__PURE__ */ jsx(
+              "a",
+              {
+                href: `/dash/id/files/${file.id}`,
+                target: "_blank",
+                rel: "noopener noreferrer",
+                className: "text-blue-500",
+                children: file.title
+              }
+            ) }),
+            /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: file.description }),
+            /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: new Date(file.upload_date).toLocaleDateString() }),
+            /* @__PURE__ */ jsxs("td", { className: "py-2 px-4 border-b text-center", children: [
+              file.average_rating.toFixed(1),
+              " ★"
+            ] })
+          ] }, file.id)) })
+        ] }) })
+      ]
+    }
+  ) });
 };
 const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
@@ -367,6 +399,11 @@ function StudyMaterial() {
     const { name, value } = event.target;
     setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
+  const navigate = useNavigate();
   const handleSubmit = async (event) => {
     event.preventDefault();
     setUploading(true);
@@ -381,69 +418,88 @@ function StudyMaterial() {
       });
       if (!response.ok) {
         throw new Error("Failed to upload file or save metadata");
+        navigate("/404");
       }
       alert("File uploaded and metadata saved successfully!");
+      navigate(`/dash/{$id}/community-operated`);
     } catch (error) {
       console.error("Error:", error);
       alert("Failed to upload file or save metadata.");
+      navigate("/404");
     } finally {
       setUploading(false);
     }
   };
-  return /* @__PURE__ */ jsxs("div", { className: "p-4 bg-white shadow-md rounded-md", children: [
-    /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold mb-4", children: "Study Material" }),
-    /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, children: [
-      /* @__PURE__ */ jsxs("div", { className: "mb-4", children: [
-        /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium", children: "Title" }),
-        /* @__PURE__ */ jsx(
-          "input",
-          {
-            type: "text",
-            name: "title",
-            value: formData.title,
-            onChange: handleInputChange,
-            required: true,
-            className: "block w-full text-sm text-gray-500 border border-gray-300 bg-gray-50 focus:outline-none"
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxs("div", { className: "mb-4", children: [
-        /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium", children: "Description" }),
-        /* @__PURE__ */ jsx(
-          "textarea",
-          {
-            name: "description",
-            value: formData.description,
-            onChange: handleInputChange,
-            className: "block w-full text-sm text-gray-500 border border-gray-300 bg-gray-50 focus:outline-none"
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsxs("div", { className: "mb-4", children: [
-        /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium", children: "Upload Files" }),
-        /* @__PURE__ */ jsx(
-          "input",
-          {
-            type: "file",
-            multiple: true,
-            accept: "image/*,.pdf",
-            onChange: handleFileUpload,
-            required: true,
-            className: "block w-full text-sm text-gray-500 border border-gray-300 cursor-pointer bg-gray-50 focus:outline-none"
-          }
-        )
-      ] }),
-      /* @__PURE__ */ jsx(
-        "button",
-        {
-          type: "submit",
-          className: "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600",
-          disabled: uploading,
-          children: uploading ? "Uploading..." : "Upload"
-        }
-      )
-    ] })
-  ] });
+  return /* @__PURE__ */ jsx(
+    "div",
+    {
+      className: `flex flex-col gap-4 bg-gray-100 bg-opacity-75 rounded-3xl shadow-lg p-6 w-full transition-opacity duration-1000 ${isVisible ? "opacity-100" : "opacity-0"}`,
+      children: /* @__PURE__ */ jsxs("div", { className: "p-4 bg-white shadow-md rounded-md", children: [
+        /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold mb-4", children: "Study Material" }),
+        /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, children: [
+          /* @__PURE__ */ jsxs("div", { className: "mb-4", children: [
+            /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium", children: "Title" }),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                type: "text",
+                name: "title",
+                value: formData.title,
+                onChange: handleInputChange,
+                required: true,
+                className: "block w-full text-sm text-gray-500 border border-gray-300 bg-gray-50 focus:outline-none"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "mb-4", children: [
+            /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium", children: "Description" }),
+            /* @__PURE__ */ jsx(
+              "textarea",
+              {
+                name: "description",
+                value: formData.description,
+                onChange: handleInputChange,
+                className: "block w-full text-sm text-gray-500 border border-gray-300 bg-gray-50 focus:outline-none"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "mb-4", children: [
+            /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium", children: "Upload Files" }),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                type: "file",
+                multiple: true,
+                accept: "image/*,.pdf",
+                onChange: handleFileUpload,
+                required: true,
+                className: "block w-full text-sm text-gray-500 border border-gray-300 cursor-pointer bg-gray-50 focus:outline-none"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "submit",
+              disabled: uploading,
+              className: `w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md font-medium transition-all duration-200 
+            ${uploading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800"} text-white shadow-sm`,
+              children: uploading ? /* @__PURE__ */ jsxs(Fragment, { children: [
+                /* @__PURE__ */ jsxs("svg", { className: "animate-spin h-5 w-5", xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", children: [
+                  /* @__PURE__ */ jsx("circle", { className: "opacity-25", cx: "12", cy: "12", r: "10", stroke: "currentColor", strokeWidth: "4" }),
+                  /* @__PURE__ */ jsx("path", { className: "opacity-75", fill: "currentColor", d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" })
+                ] }),
+                /* @__PURE__ */ jsx("span", { children: "Uploading..." })
+              ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
+                /* @__PURE__ */ jsx("svg", { className: "h-5 w-5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" }) }),
+                /* @__PURE__ */ jsx("span", { children: "Upload" })
+              ] })
+            }
+          )
+        ] })
+      ] })
+    }
+  );
 }
 const route2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
@@ -453,28 +509,58 @@ const route2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
 }, Symbol.toStringTag, { value: "Module" }));
 async function loader$2({ params }) {
   const client = await pool.connect();
-  const result = await client.query(
-    "SELECT * FROM files WHERE id = $1",
-    [params.fileid]
-  );
+  const result = await client.query("SELECT * FROM files WHERE id = $1", [
+    params.fileid
+  ]);
   console.log(result.rows[0].title);
   const result1 = await client.query("SELECT * FROM users WHERE id = $1", [
     result.rows[0].uploader_id
   ]);
   const fileDetails = {
     name: result.rows[0].title,
+    description: result.rows[0].description,
     uploadedBy: result1.rows[0].name,
     uploadDate: result.rows[0].upload_date,
     downloadUrl: result.rows[0].file_url
   };
-  const result2 = await client.query("SELECT ratings.rater_id, ratings.rating, ratings.comment, ratings.created_at, users.name as rater_name FROM ratings JOIN users ON ratings.rater_id = users.id WHERE ratings.file_id = $1", [params.fileid]);
+  const result2 = await client.query(
+    "SELECT ratings.rater_id, ratings.rating, ratings.comment, ratings.created_at, users.name as rater_name FROM ratings JOIN users ON ratings.rater_id = users.id WHERE ratings.file_id = $1",
+    [params.fileid]
+  );
   const comments = result2.rows.map((row) => ({
     id: row.rater_id,
     user: row.rater_name,
     comment: row.comment,
     rating: row.rating
   }));
-  return json({ fileDetails, comments });
+  const genAI = new GoogleGenerativeAI(
+    "AIzaSyAzyFs9KC5bZyhqQ17KTtAlSumzp89ne_o"
+  );
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const ratings = comments.map((comment) => comment.rating);
+  const comments_text = comments.map((comment) => comment.comment);
+  console.log(ratings);
+  console.log(comments_text);
+  const prompt = `
+You are an AI model that analyzes user feedback. Below are the ratings and comments provided by users for a specific file with name ${fileDetails.name} and desciption ${fileDetails.description}. Please analyze the feedback and provide a summary indicating whether the overall sentiment towards the file is positive, negative, or neutral. Additionally, highlight any common themes or issues mentioned by the users.
+
+Ratings:
+${ratings.join(", ")}
+
+Comments:
+${comments_text.join("\n")}
+
+Based on the above ratings and comments, what is the overall sentiment towards the file? Is the file generally considered good or bad by the users? Please provide a detailed analysis in 50 words.
+`;
+  let summary;
+  try {
+    const ratings_summary = await model.generateContent(prompt);
+    summary = ratings_summary.response.text();
+  } catch (error) {
+    console.error("Error connecting to NLP Sentiment Analysis Server:", error);
+    summary = "Error connecting to NLP Sentiment Analysis Server Error";
+  }
+  return json({ fileDetails, comments, summary });
 }
 async function action$4({ request, params }) {
   const formData = await request.formData();
@@ -487,37 +573,66 @@ async function action$4({ request, params }) {
     "INSERT INTO ratings (rater_id, file_id, rating, comment) VALUES ($1, $2, $3, $4)",
     [userId, params.fileid, formData.get("rating"), formData.get("comment")]
   );
-  const result = await client.query("SELECT AVG(rating) as average_rating FROM ratings WHERE file_id = $1", [params.fileid]);
+  const result = await client.query(
+    "SELECT AVG(rating) as average_rating FROM ratings WHERE file_id = $1",
+    [params.fileid]
+  );
   console.log(result.rows[0].average_rating);
-  client.query("UPDATE files SET average_rating = $1 WHERE id = $2", [result.rows[0].average_rating, params.fileid]);
+  client.query("UPDATE files SET average_rating = $1 WHERE id = $2", [
+    result.rows[0].average_rating,
+    params.fileid
+  ]);
   return json({ success: true });
 }
 function Dashboard$1() {
-  const { fileDetails, comments } = useLoaderData();
+  const { fileDetails, comments, summary } = useLoaderData();
   const [rating, setRating] = useState(0);
   return /* @__PURE__ */ jsxs("div", { className: "p-6", children: [
     /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold mb-6", children: "File Details" }),
     /* @__PURE__ */ jsxs("div", { className: "bg-white p-4 rounded-lg shadow mb-6", children: [
-      /* @__PURE__ */ jsx("h2", { className: "text-xl mb-2", children: fileDetails.name }),
-      /* @__PURE__ */ jsxs("p", { children: [
-        "Uploaded by: ",
+      /* @__PURE__ */ jsx("h2", { className: "text-5xl mb-2", children: /* @__PURE__ */ jsx("b", { children: fileDetails.name }) }),
+      /* @__PURE__ */ jsx("h2", { className: "text-2xl mb-2", children: fileDetails.description }),
+      /* @__PURE__ */ jsxs("p", { className: "mb-1", children: [
+        /* @__PURE__ */ jsx("b", { children: "Uploaded by:" }),
+        " ",
         fileDetails.uploadedBy
       ] }),
-      /* @__PURE__ */ jsxs("p", { children: [
-        "Date: ",
+      /* @__PURE__ */ jsxs("p", { className: "mb-1", children: [
+        /* @__PURE__ */ jsx("b", { children: "Date:" }),
+        " ",
         fileDetails.uploadDate
       ] }),
-      /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsxs("p", { className: "mb-1", children: [
+        /* @__PURE__ */ jsx("b", { children: "AI File Sentiment Analysis:" }),
+        /* @__PURE__ */ jsx("br", {}),
+        summary
+      ] }),
+      /* @__PURE__ */ jsx("div", { className: "mt-5 mb-2", children: /* @__PURE__ */ jsx(
         "a",
         {
           href: fileDetails.downloadUrl,
-          className: "inline-block bg-blue-500 text-white px-4 py-2 rounded mt-2",
+          className: "border border-black bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition mr-1.5 mt-2",
           download: true,
           children: "Download File"
         }
-      )
+      ) })
     ] }),
-    /* @__PURE__ */ jsxs(Form, { method: "post", className: "bg-white p-4 rounded-lg shadow mb-6", children: [
+    /* @__PURE__ */ jsxs("div", { className: "bg-white p-4 rounded-lg shadow", children: [
+      /* @__PURE__ */ jsx("h2", { className: "text-xl mb-4", children: "Previous Comments" }),
+      comments.map((comment) => /* @__PURE__ */ jsxs("div", { className: "border-b py-3", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
+          /* @__PURE__ */ jsx("strong", { children: comment.user }),
+          /* @__PURE__ */ jsxs("span", { className: "text-black-400", children: [
+            "★".repeat(comment.rating),
+            " (",
+            comment.rating,
+            "/5)"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx("p", { className: "mt-2", children: comment.comment })
+      ] }, comment.id))
+    ] }),
+    /* @__PURE__ */ jsxs(Form, { method: "post", className: "bg-white p-4 rounded-lg shadow mt-6", children: [
       /* @__PURE__ */ jsxs("div", { className: "mb-4", children: [
         /* @__PURE__ */ jsx("label", { className: "block mb-2", children: "Rating:" }),
         /* @__PURE__ */ jsx("div", { className: "flex gap-2", children: [1, 2, 3, 4, 5].map((star) => /* @__PURE__ */ jsx(
@@ -525,7 +640,7 @@ function Dashboard$1() {
           {
             type: "button",
             onClick: () => setRating(star),
-            className: `text-2xl ${rating >= star ? "text-yellow-400" : "text-gray-300"}`,
+            className: `text-2xl ${rating >= star ? "text-black-400" : "text-gray-300"}`,
             children: "★"
           },
           star
@@ -545,20 +660,10 @@ function Dashboard$1() {
         "button",
         {
           type: "submit",
-          className: "bg-blue-500 text-white px-4 py-2 rounded mt-2",
+          className: "border border-black bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition mr-1.5 mt-2",
           children: "Submit Review"
         }
       )
-    ] }),
-    /* @__PURE__ */ jsxs("div", { className: "bg-white p-4 rounded-lg shadow", children: [
-      /* @__PURE__ */ jsx("h2", { className: "text-xl mb-4", children: "Previous Comments" }),
-      comments.map((comment) => /* @__PURE__ */ jsxs("div", { className: "border-b py-3", children: [
-        /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
-          /* @__PURE__ */ jsx("strong", { children: comment.user }),
-          /* @__PURE__ */ jsx("span", { className: "text-yellow-400", children: "★".repeat(comment.rating) })
-        ] }),
-        /* @__PURE__ */ jsx("p", { className: "mt-2", children: comment.comment })
-      ] }, comment.id))
     ] })
   ] });
 }
@@ -918,14 +1023,22 @@ const action$2 = async ({ request }) => {
              VALUES ($1, $2, $3, $4, $5) RETURNING id, email`,
       [id_val, full_name, universityEmail, hashedPassword, "student"]
     );
-    const { id } = useParams();
-    return redirect("/sign-in");
+    if (result.rows.length > 0) {
+      return redirect("/sign-in", {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+    }
+    return redirect("/404");
   } catch (error) {
     if (error.code === "23505" && error.detail.includes("Key (email)")) {
-      return json({ error: "Email already exists" });
+      return json({ error: "Email already exists" }, { status: 400 });
     }
-    console.error("Error inserting user data:", error);
-    return redirect("/404");
+    return json(
+      { error: "There was an issue creating your account" },
+      { status: 500 }
+    );
   }
 };
 function SignUpForm() {
@@ -1210,46 +1323,434 @@ const route5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
 }, Symbol.toStringTag, { value: "Module" }));
 function Sidebar() {
   const { id } = useParams();
-  return /* @__PURE__ */ jsx("div", { className: "w-64 bg-gray-200 text-white flex flex-col", children: /* @__PURE__ */ jsxs("nav", { className: "flex flex-col space-y-2 p-4", children: [
-    /* @__PURE__ */ jsx(
-      "a",
+  const [isOpen, setIsOpen] = useState(false);
+  const toggleDropdown = () => {
+    setIsOpen(!isOpen);
+  };
+  return /* @__PURE__ */ jsx("div", { className: "w-64 bg-[#fafafa] text-[#333333] flex flex-col", children: /* @__PURE__ */ jsxs("nav", { className: "flex flex-col p-4", children: [
+    /* @__PURE__ */ jsxs(
+      "button",
       {
-        href: `/dash/${id}/community-operated`,
-        className: "text-gray-700 hover:text-gray-500",
-        children: "Community operated study material"
+        onClick: toggleDropdown,
+        className: "flex items-center justify-between mt-2 mb-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors",
+        children: [
+          /* @__PURE__ */ jsx("span", { className: "font-medium", children: "Study Material" }),
+          /* @__PURE__ */ jsx(
+            "svg",
+            {
+              className: `w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`,
+              fill: "none",
+              viewBox: "0 0 24 24",
+              stroke: "currentColor",
+              children: /* @__PURE__ */ jsx(
+                "path",
+                {
+                  strokeLinecap: "round",
+                  strokeLinejoin: "round",
+                  strokeWidth: 2,
+                  d: "M19 9l-7 7-7-7"
+                }
+              )
+            }
+          )
+        ]
+      }
+    ),
+    isOpen && /* @__PURE__ */ jsxs("div", { className: "pl-4 mt-2 space-y-2", children: [
+      /* @__PURE__ */ jsx(
+        "a",
+        {
+          href: `/dash/${id}/community-operated`,
+          className: "block text-gray-700 hover:text-gray-500 px-4 py-2 rounded-lg",
+          children: "Community operated"
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        "a",
+        {
+          href: "/404",
+          className: "block text-gray-700 hover:text-gray-500 px-4 py-2 rounded-lg",
+          children: "College operated"
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsx(
+      "button",
+      {
+        onClick: () => window.location.href = "/404",
+        className: "flex items-center justify-between mt-2 mb-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors",
+        children: /* @__PURE__ */ jsx("span", { className: "font-medium", children: "Mentoriship Program" })
       }
     ),
     /* @__PURE__ */ jsx(
-      "a",
+      "button",
       {
-        href: "/404",
-        className: "text-gray-700 hover:text-gray-500",
-        children: "College operated study material"
+        onClick: () => window.location.href = "/404",
+        className: "flex items-center justify-between mt-2 mb-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors",
+        children: /* @__PURE__ */ jsx("span", { className: "font-medium", children: "Car Pooling" })
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      "button",
+      {
+        onClick: () => window.location.href = "/404",
+        className: "flex items-center justify-between mt-2 mb-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors",
+        children: /* @__PURE__ */ jsx("span", { className: "font-medium", children: "Accommodation" })
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      "button",
+      {
+        onClick: () => window.location.href = "/404",
+        className: "flex items-center justify-between mt-2 mb-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors",
+        children: /* @__PURE__ */ jsx("span", { className: "font-medium", children: "Campus Dating" })
       }
     )
   ] }) });
 }
 function Navbar() {
-  useNavigate();
-  return /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between bg-gray-400/70 backdrop-blur-lg text-white h-[70px] p-4", children: [
+  const navigate = useNavigate$1();
+  return /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between bg-[#fafafa]/80 backdrop-blur-3xl text-[#333333] p-4 h-[50px]", children: [
     /* @__PURE__ */ jsx("div", { className: "p-4 text-lg font-bold", children: /* @__PURE__ */ jsx(
       "img",
       {
         src: "/logo_UniNet_text.png",
         alt: "Uninet Logo",
-        className: "h-8 w-[150px]"
+        className: "h-6 w-auto",
+        onClick: () => navigate("/dash/id")
       }
     ) }),
-    /* @__PURE__ */ jsx("div", { className: "flex items-center space-x-4", children: /* @__PURE__ */ jsx(Form, { method: "post", action: "/log-out", children: /* @__PURE__ */ jsx("button", { type: "submit", className: "text-white", children: "Logout" }) }) })
+    /* @__PURE__ */ jsx("div", { className: "flex items-center space-x-4", children: /* @__PURE__ */ jsx(Form, { method: "post", action: "/log-out", children: /* @__PURE__ */ jsx(
+      "button",
+      {
+        type: "submit",
+        className: "inline-flex h-full w-full items-center justify-center rounded-full bg-neutral-950 px-3 py-1 text-xs font-medium text-gray-50 backdrop-blur-3xl",
+        children: "Logout"
+      }
+    ) }) })
   ] });
 }
+function PopoverExample() {
+  return /* @__PURE__ */ jsxs(HoverCard.Root, { openDelay: 200, closeDelay: 300, children: [
+    /* @__PURE__ */ jsx(HoverCard.Trigger, { asChild: true, children: /* @__PURE__ */ jsx(
+      "a",
+      {
+        className: "rounded-full inline-block",
+        href: "https://github.com/shashantbhat",
+        target: "_blank",
+        rel: "noreferrer noopener",
+        children: /* @__PURE__ */ jsx(
+          "img",
+          {
+            className: "rounded-full",
+            src: "https://avatars.githubusercontent.com/u/120403073?s=400&u=91f83f229e8ec573ca1391b66e45082cca5b4b81&v=4",
+            alt: "Shashant's image",
+            width: 45,
+            height: 45
+          }
+        )
+      }
+    ) }),
+    /* @__PURE__ */ jsx(AnimatePresence, { children: /* @__PURE__ */ jsx(HoverCard.Portal, { children: /* @__PURE__ */ jsxs(
+      HoverCard.Content,
+      {
+        className: "bg-white rounded-lg shadow-lg p-4 w-64",
+        sideOffset: 5,
+        children: [
+          /* @__PURE__ */ jsxs(
+            motion.div,
+            {
+              initial: { opacity: 0, y: 10 },
+              animate: { opacity: 1, y: 0 },
+              exit: { opacity: 0, y: 10 },
+              transition: { duration: 0.2 },
+              children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+                  /* @__PURE__ */ jsx(
+                    "img",
+                    {
+                      className: "rounded-full",
+                      src: "https://avatars.githubusercontent.com/u/120403073?s=400&u=91f83f229e8ec573ca1391b66e45082cca5b4b81&v=4",
+                      alt: "Shashant's image",
+                      width: 45,
+                      height: 45
+                    }
+                  ),
+                  /* @__PURE__ */ jsxs("div", { children: [
+                    /* @__PURE__ */ jsx("h3", { className: "font-medium", children: "Shashant Bhat" }),
+                    /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-500", children: "@shashantbhat" })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm text-gray-600", children: "Student at JIIT" })
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsx(HoverCard.Arrow, { className: "fill-white" })
+        ]
+      }
+    ) }) })
+  ] });
+}
+function PopoverExample1() {
+  return /* @__PURE__ */ jsxs(HoverCard.Root, { openDelay: 200, closeDelay: 300, children: [
+    /* @__PURE__ */ jsx(HoverCard.Trigger, { asChild: true, children: /* @__PURE__ */ jsx(
+      "a",
+      {
+        className: "rounded-full inline-block",
+        href: "https://github.com/yash-dhingra",
+        target: "_blank",
+        rel: "noreferrer noopener",
+        children: /* @__PURE__ */ jsx(
+          "img",
+          {
+            className: "rounded-full",
+            src: "https://avatars.githubusercontent.com/u/77784099?v=4",
+            alt: "Yash's image",
+            width: 45,
+            height: 45
+          }
+        )
+      }
+    ) }),
+    /* @__PURE__ */ jsx(AnimatePresence, { children: /* @__PURE__ */ jsx(HoverCard.Portal, { children: /* @__PURE__ */ jsxs(
+      HoverCard.Content,
+      {
+        className: "bg-white rounded-lg shadow-lg p-4 w-64",
+        sideOffset: 5,
+        children: [
+          /* @__PURE__ */ jsxs(
+            motion.div,
+            {
+              initial: { opacity: 0, y: 10 },
+              animate: { opacity: 1, y: 0 },
+              exit: { opacity: 0, y: 10 },
+              transition: { duration: 0.2 },
+              children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+                  /* @__PURE__ */ jsx(
+                    "img",
+                    {
+                      className: "rounded-full",
+                      src: "https://avatars.githubusercontent.com/u/77784099?v=4",
+                      alt: "Yash's image",
+                      width: 45,
+                      height: 45
+                    }
+                  ),
+                  /* @__PURE__ */ jsxs("div", { children: [
+                    /* @__PURE__ */ jsx("h3", { className: "font-medium", children: "Yash Dhingra" }),
+                    /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-500", children: "@yash-dhingra" })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm text-gray-600", children: "Student at JIIT" })
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsx(HoverCard.Arrow, { className: "fill-white" })
+        ]
+      }
+    ) }) })
+  ] });
+}
+function TextGlitch() {
+  return /* @__PURE__ */ jsxs("div", { className: "relative overflow-hidden font-medium group", children: [
+    /* @__PURE__ */ jsx("span", { className: "invisible", children: "Meet the Developers" }),
+    /* @__PURE__ */ jsx("span", { className: "text-neutral-400 absolute top-0 left-0 group-hover:-translate-y-full transition-transform ease-in-out duration-500 hover:duration-300", children: "Meet the Developers" }),
+    /* @__PURE__ */ jsx("span", { className: "text-neutral-400 absolute top-0 left-0 translate-y-full group-hover:translate-y-0 transition-transform ease-in-out duration-500 hover:duration-300", children: "Meet the Developers" })
+  ] });
+}
+function cn$1(...classes) {
+  return classes.filter(Boolean).join(" ");
+}
+function TextGenerateEffectExample() {
+  const text = `Welcome to UniNet`;
+  return /* @__PURE__ */ jsx(TextGenerateEffect, { text, duration: 0.5 });
+}
+function TextGenerateEffect({
+  text,
+  duration = 0.5,
+  className
+}) {
+  return /* @__PURE__ */ jsx(motion.div, { className: "inline-block whitespace-pre", children: text.split("").map((char, index) => /* @__PURE__ */ jsx(
+    motion.span,
+    {
+      className: cn$1(
+        "inline-block whitespace-pre text-black",
+        className
+      ),
+      initial: { opacity: 0, filter: "blur(4px)", rotateX: 90, y: 5 },
+      whileInView: {
+        opacity: 1,
+        filter: "blur(0px)",
+        rotateX: 0,
+        y: 0
+      },
+      transition: {
+        ease: "easeOut",
+        duration,
+        delay: index * 0.015
+      },
+      viewport: { once: true },
+      children: char
+    },
+    `${char}-${index}`
+  )) });
+}
+function CardRevealedPointer() {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const background = useMotionTemplate`radial-gradient(200px circle at ${mouseX}px ${mouseY}px, rgba(38, 38, 38, 0.4), transparent 80%)`;
+  return /* @__PURE__ */ jsx(
+    "div",
+    {
+      onMouseMove: (e) => {
+        const { left, top } = e.currentTarget.getBoundingClientRect();
+        mouseX.set(e.clientX - left);
+        mouseY.set(e.clientY - top);
+      },
+      className: "group relative w-full max-w-[350px] overflow-hidden rounded-xl bg-neutral-950",
+      children: /* @__PURE__ */ jsxs(
+        "a",
+        {
+          href: "https://github.com/shashantbhat/UniNet-Remix",
+          target: "_blank",
+          rel: "noopener noreferrer",
+          className: "group relative block w-full rounded-xl hover:no-underline transition-all duration-300 hover:scale-105",
+          children: [
+            /* @__PURE__ */ jsx("div", { className: "absolute right-5 top-0 h-px w-80 bg-gradient-to-l from-transparent via-white/30 via-10% to-transparent" }),
+            /* @__PURE__ */ jsx(
+              motion.div,
+              {
+                className: "pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-100",
+                style: {
+                  background
+                }
+              }
+            ),
+            /* @__PURE__ */ jsx("div", { className: "relative flex flex-col gap-3 rounded-xl border border-white/10 px-4 py-5", children: /* @__PURE__ */ jsxs("div", { className: "space-y-2", children: [
+              /* @__PURE__ */ jsx("h3", { className: "text-xl font-semibold text-neutral-200", children: "From The Developers🚀" }),
+              /* @__PURE__ */ jsx("p", { className: "text-sm leading-[1.5] text-neutral-400", children: "UniNet is still is in development. We are working hard to make it, we appreciate your feedback and contributions. Use it, test it throughly, if possible you can contribute to the project. open up new issue make your PR, we will review it. you can check the Github repository just by a click." })
+            ] }) })
+          ]
+        }
+      )
+    }
+  );
+}
+function CardBackgroundShine() {
+  return /* @__PURE__ */ jsx("div", { className: "inline-flex w-full max-w-[350px] animate-shine items-center justify-center rounded-xl border border-white/10 bg-[linear-gradient(110deg,#000103,45%,#303030,55%,#000103)] bg-[length:400%_100%] px-4 py-5 text-sm transition-colors", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-2", children: [
+    /* @__PURE__ */ jsx("h3", { className: "text-xl font-semibold text-neutral-200", children: "Hey Mates👋🏻" }),
+    /* @__PURE__ */ jsx("p", { className: "text-sm leading-[1.5] text-neutral-400", children: "Lets build the community strongs💪🌐. As per now the Community operated section is functional. Try that out, help the other users, share your knowledge. Don't forget to give your feedback on the files. Helps you to get the best out of UniNet. And for us to optimize our cloud storage☺️." })
+  ] }) });
+}
+function cn(...classes) {
+  return classes.filter(Boolean).join(" ");
+}
+function InfiniteSliderExample() {
+  return /* @__PURE__ */ jsxs(InfiniteSlider, { pauseOnHover: true, children: [
+    /* @__PURE__ */ jsx(
+      "img",
+      {
+        src: "/mentor.png",
+        className: "aspect-square w-[150px] h-[80px] rounded-[4px]",
+        alt: "mentor"
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      "img",
+      {
+        src: "/pg mates.png",
+        className: "aspect-square w-[130px] h-[80px] rounded-[4px]",
+        alt: "pg mates"
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      "img",
+      {
+        src: "/dating.png",
+        className: "aspect-square w-[130px] h-[80px] rounded-[4px]",
+        alt: "dating"
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      "img",
+      {
+        src: "/carpool.png",
+        className: "aspect-square w-[150px] h-[80px] rounded-[4px]",
+        alt: "carpool"
+      }
+    )
+  ] });
+}
+function InfiniteSlider({
+  children,
+  className,
+  pauseOnHover
+}) {
+  return /* @__PURE__ */ jsxs(
+    "div",
+    {
+      "data-id": "slider",
+      className: cn("group relative flex gap-10 overflow-hidden", className),
+      children: [
+        /* @__PURE__ */ jsx("div", { className: "absolute left-0 w-1/12 h-full bg-gradient-to-r from-background to-transparent z-10" }),
+        Array.from({ length: 6 }).map((_, i) => /* @__PURE__ */ jsx(
+          "div",
+          {
+            className: cn(
+              "flex shrink-0 animate-infinite-slider justify-around gap-10 [--gap:1rem]",
+              pauseOnHover && "group-hover:[animation-play-state:paused]"
+            ),
+            "data-id": `slider-child-${i + 1}`,
+            children
+          },
+          i
+        )),
+        /* @__PURE__ */ jsx("div", { className: "absolute right-0 w-1/12 h-full bg-gradient-to-l from-background to-transparent z-10" })
+      ]
+    }
+  );
+}
 function DashboardLayout() {
+  const location = useLocation();
+  const shouldHideContent = location.pathname.includes("/community-operated") || location.pathname.includes("/files/") || location.pathname.includes("/upload-material");
   return /* @__PURE__ */ jsxs("div", { className: "flex flex-col h-screen", children: [
-    /* @__PURE__ */ jsx(Navbar, {}),
-    /* @__PURE__ */ jsxs("div", { className: "flex flex-grow", children: [
-      /* @__PURE__ */ jsx(Sidebar, {}),
-      /* @__PURE__ */ jsx("main", { className: "flex-grow p-4 bg-gray-100", children: /* @__PURE__ */ jsx(Outlet, {}) })
-    ] })
+    /* @__PURE__ */ jsx("div", { className: "fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md shadow-sm", children: /* @__PURE__ */ jsx(Navbar, {}) }),
+    /* @__PURE__ */ jsx("div", { className: "fixed bg-[#fafafa] top-[50px] left-0 h-full z-40", children: /* @__PURE__ */ jsx(Sidebar, {}) }),
+    /* @__PURE__ */ jsx("div", { className: "flex flex-grow mt-[50px] ml-[240px]", children: /* @__PURE__ */ jsxs("main", { className: "flex-grow p-4 bg-[#fafafa]", children: [
+      !shouldHideContent && /* @__PURE__ */ jsxs("div", { children: [
+        /* @__PURE__ */ jsx("div", { className: "flex justify-center pt-8", children: /* @__PURE__ */ jsx("div", { className: "text-4xl font-bold", children: /* @__PURE__ */ jsx(TextGenerateEffectExample, {}) }) }),
+        /* @__PURE__ */ jsxs("div", { className: "flex flex-row items-center justify-center pt-12 space-x-8", children: [
+          /* @__PURE__ */ jsx(TextGlitch, {}),
+          /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx(PopoverExample, {}) }),
+          /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx(PopoverExample1, {}) })
+        ] }),
+        /* @__PURE__ */ jsx("p", { className: "text-center text-gray-700 max-w-2xl mx-auto my-6 leading-relaxed", children: "UniNet was created to simplify university life by addressing key challenges like data management, study material access, and connectivity. Designed with students, admins, and developers in mind, it provides tailored dashboards, seamless file management, and a reliable platform to empower academic communities." }),
+        /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col md:flex-row justify-center items-center gap-8 p-8 max-w-6xl mx-auto", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-full md:w-1/2 max-w-xl hover:scale-105 transition-transform", children: /* @__PURE__ */ jsx(CardRevealedPointer, {}) }),
+          /* @__PURE__ */ jsx("div", { className: "w-full md:w-1/2 max-w-xl hover:scale-105 transition-transform", children: /* @__PURE__ */ jsx(CardBackgroundShine, {}) })
+        ] }) }),
+        /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx(InfiniteSliderExample, {}) })
+      ] }),
+      /* @__PURE__ */ jsx(Outlet, {}),
+      /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx("footer", { className: "border-t border-gray-700/30 mt-12 bg-transparent", children: /* @__PURE__ */ jsx("div", { className: "max-w-7xl mx-auto px-4 py-4", children: /* @__PURE__ */ jsxs("div", { className: "flex justify-between items-center", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center space-x-4", children: [
+          /* @__PURE__ */ jsx("span", { className: "text-gray-800 font-semibold", children: "UniNet" }),
+          /* @__PURE__ */ jsx("span", { className: "text-gray-600", children: "|" }),
+          /* @__PURE__ */ jsx("a", { href: "/dash/id", className: "text-gray-600 hover:text-blue-600", children: "Dashboard" }),
+          /* @__PURE__ */ jsx("a", { href: "/resources", className: "text-gray-600 hover:text-blue-600", children: "Resources" }),
+          /* @__PURE__ */ jsx("a", { href: "/community", className: "text-gray-600 hover:text-blue-600", children: "Community" })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center space-x-4", children: [
+          /* @__PURE__ */ jsx("span", { className: "text-gray-600", children: "support@uninet.edu" }),
+          /* @__PURE__ */ jsxs("span", { className: "text-gray-600", children: [
+            "© ",
+            (/* @__PURE__ */ new Date()).getFullYear(),
+            " UniNet"
+          ] })
+        ] })
+      ] }) }) }) })
+    ] }) })
   ] });
 }
 function Dashboard() {
@@ -1295,7 +1796,7 @@ function LoginPage() {
           /* @__PURE__ */ jsx(
             "img",
             {
-              src: "public/logo_UniNet_globe.png",
+              src: "/logo_UniNet_globe.png",
               alt: "Uni-Net Logo",
               className: "mb-6 max-w-sm mx-auto"
             }
@@ -1303,7 +1804,7 @@ function LoginPage() {
           /* @__PURE__ */ jsx(
             "img",
             {
-              src: "public/logo_UniNet_text.png",
+              src: "/logo_UniNet_text.png",
               alt: "Company Text",
               className: "max-w-sm mx-auto"
             }
@@ -1429,7 +1930,7 @@ const HelloText = () => {
         {
           opacity: 1,
           y: 0,
-          duration: 0.5,
+          duration: 0.3,
           stagger: 0.1
           // Stagger animation for each character
         }
@@ -1488,14 +1989,14 @@ const route10 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePrope
 const App = () => {
   const helloRef = useRef(null);
   const welcomeRef = useRef(null);
-  const navigate = useNavigate$1();
+  const navigate = useNavigate();
   useEffect(() => {
     const helloElement = helloRef.current;
     const welcomeElement = welcomeRef.current;
     if (!helloElement || !welcomeElement) return;
     gsap.set(welcomeElement, { opacity: 0, display: "none" });
     const timeline = gsap.timeline();
-    timeline.to(helloElement, { opacity: 0, duration: 1, delay: 2 }).to(helloElement, { display: "none" }).set(welcomeElement, { display: "flex" }).to(welcomeElement, { opacity: 1, duration: 2, delay: 1 }).to(welcomeElement, { opacity: 0, duration: 2, delay: 1, onComplete: () => {
+    timeline.to(helloElement, { opacity: 0, duration: 1, delay: 1 }).to(helloElement, { display: "none" }).set(welcomeElement, { display: "flex" }).to(welcomeElement, { opacity: 1, duration: 1, delay: 0.5 }).to(welcomeElement, { opacity: 0, duration: 1, delay: 0.5, onComplete: () => {
       navigate("/sign-in");
     } });
     return () => {
@@ -1521,7 +2022,7 @@ const route9 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   CatchBoundary,
   default: App
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-B9VSw_Qg.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-DwNI8XdG.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/root-DkjWsVIG.css"] }, "routes/dash._student.$id.community-operated": { "id": "routes/dash._student.$id.community-operated", "parentId": "routes/dash._student.$id", "path": "community-operated", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.community-operated-xOSvIBSr.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/dash._student.$id.upload-material": { "id": "routes/dash._student.$id.upload-material", "parentId": "routes/dash._student.$id", "path": "upload-material", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.upload-material-9gLIX0H2.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/dash._student.$id.files.$fileid": { "id": "routes/dash._student.$id.files.$fileid", "parentId": "routes/dash._student.$id", "path": "files/:fileid", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.files._fileid-D-4bV-m_.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/_auth.sign-up-college": { "id": "routes/_auth.sign-up-college", "parentId": "root", "path": "sign-up-college", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-college-BqFQHDoA.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-up-student": { "id": "routes/_auth.sign-up-student", "parentId": "root", "path": "sign-up-student", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-student-COofxwIC.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/dash._student.$id": { "id": "routes/dash._student.$id", "parentId": "root", "path": "dash/:id", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id-4ow60LKk.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": [] }, "routes/_auth.sign-in": { "id": "routes/_auth.sign-in", "parentId": "root", "path": "sign-in", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-in-7HSbZAEy.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-C9d7fhEX.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/log-out": { "id": "routes/log-out", "parentId": "root", "path": "log-out", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/log-out-l0sNRNKZ.js", "imports": [], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-ly3kyYAp.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/404": { "id": "routes/404", "parentId": "root", "path": "404", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/404-DTNY1P7q.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js", "/assets/components-C9d7fhEX.js"], "css": [] } }, "url": "/assets/manifest-bb7a2589.js", "version": "bb7a2589" };
+const serverManifest = { "entry": { "module": "/assets/entry.client-B1o9-F3e.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-DEgpvRqV.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/root-BQzfzynx.css"] }, "routes/dash._student.$id.community-operated": { "id": "routes/dash._student.$id.community-operated", "parentId": "routes/dash._student.$id", "path": "community-operated", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.community-operated-Broom0Zp.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/dash._student.$id.upload-material": { "id": "routes/dash._student.$id.upload-material", "parentId": "routes/dash._student.$id", "path": "upload-material", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.upload-material-Gxx7u0VD.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/dash._student.$id.files.$fileid": { "id": "routes/dash._student.$id.files.$fileid", "parentId": "routes/dash._student.$id", "path": "files/:fileid", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.files._fileid-n0EVRIro.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/_auth.sign-up-college": { "id": "routes/_auth.sign-up-college", "parentId": "root", "path": "sign-up-college", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-college-BdJG3vxI.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-up-student": { "id": "routes/_auth.sign-up-student", "parentId": "root", "path": "sign-up-student", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-student-kjENY8XE.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/dash._student.$id": { "id": "routes/dash._student.$id", "parentId": "root", "path": "dash/:id", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id-BL95It4X.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/_auth.sign-in": { "id": "routes/_auth.sign-in", "parentId": "root", "path": "sign-in", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-in-Df1xKkPD.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/log-out": { "id": "routes/log-out", "parentId": "root", "path": "log-out", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/log-out-l0sNRNKZ.js", "imports": [], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-C0IQiAhl.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/404": { "id": "routes/404", "parentId": "root", "path": "404", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/404-BWHHjsz2.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js", "/assets/components-J4jkiaDK.js"], "css": [] } }, "url": "/assets/manifest-067a8afb.js", "version": "067a8afb" };
 const mode = "production";
 const assetsBuildDirectory = "build/client";
 const basename = "/";

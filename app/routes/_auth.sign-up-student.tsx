@@ -114,16 +114,29 @@ export const action: ActionFunction = async ({ request }) => {
              VALUES ($1, $2, $3, $4, $5) RETURNING id, email`,
             [id_val, full_name, universityEmail, hashedPassword, 'student']
         );
-        const { id } = useParams();
-        return redirect("/sign-in");
+
+        // If successful, redirect to sign-in
+        if (result.rows.length > 0) {
+            return redirect("/sign-in", {
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+        }
+
+        // If no rows returned, something went wrong
+        return redirect('/404')
 
     } catch (error: any) {
+        // Handle specific errors
         if (error.code === '23505' && error.detail.includes('Key (email)')) {
-            return json({ error: 'Email already exists' });
+            return json({ error: 'Email already exists' }, { status: 400 });
         }
-        console.error("Error inserting user data:", error);
-        // return json({ error: "There was an issue creating your account." });
-        return redirect("/404");
+
+        return json(
+            { error: "There was an issue creating your account" }, 
+            { status: 500 }
+        );
     }
 };
 

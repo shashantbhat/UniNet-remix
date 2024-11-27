@@ -78,12 +78,12 @@ export default function LoginPage() {
         <div className="w-1/2 flex items-center justify-center">
           <div className="text-center m-10">
             <img
-              src="public/logo_UniNet_globe.png"
+              src="/logo_UniNet_globe.png"
               alt="Uni-Net Logo"
               className="mb-6 max-w-sm mx-auto"
             />
             <img
-              src="public/logo_UniNet_text.png"
+              src="/logo_UniNet_text.png"
               alt="Company Text"
               className="max-w-sm mx-auto"
             />
