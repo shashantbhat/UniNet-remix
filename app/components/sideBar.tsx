@@ -56,7 +56,7 @@ export default function Sidebar() {
           onClick={() => (window.location.href = "/404")}
           className="flex items-center justify-between mt-2 mb-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
         >
-          <span className="font-medium">Mentoriship Program</span>
+          <span className="font-medium">Mentorship Program</span>
         </button>
         <button
           onClick={() => (window.location.href = "/404")}
