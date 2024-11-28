@@ -6,6 +6,7 @@ import { Form, useLoaderData } from "@remix-run/react";
 import authenticator from "~/utils/auth.server";
 import { sessionStorage } from "~/utils/session.server";
 import { useNavigate } from 'react-router-dom';
+import { LoadingSpinner } from '~/components/loadingSpinner'; 
 
 export let loader: LoaderFunction = async ({ request }) => {
   return await authenticator.isAuthenticated(request, {
@@ -67,6 +68,14 @@ export const action = async ({ request }: { request: Request }) => {
 export default function StudyMaterial() {
   const data = useLoaderData(); // Contains { id, university_id }
 
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    // Simulate a network request or some async operation
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 3000); // Adjust the timeout as necessary
+  }, []);
+
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
@@ -127,6 +136,12 @@ export default function StudyMaterial() {
   };
 
   return (
+    // <div>
+    //   {isLoading ? (
+    //     <div className="flex items-center justify-center h-screen">
+    //       <LoadingSpinner />
+    //     </div>
+    //   ) : (
     <div className="flex flex-col h-screen p-4">
     <div
       className={`flex flex-col gap-6 bg-gray-50 bg-opacity-90 rounded-3xl shadow-2xl p-8 w-full transition-opacity duration-700 ${
@@ -242,5 +257,7 @@ export default function StudyMaterial() {
       </form>
     </div>
   </div>
+  //  )}
+  //   </div>
   );
 }

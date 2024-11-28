@@ -6,11 +6,12 @@ import {
   ActionFunctionArgs,
   LoaderFunction,
 } from "@remix-run/node";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "~/components/dashboard_layout";
 import pool from "~/utils/db.server";
 import authenticator from "~/utils/auth.server";
 import { GoogleGenerativeAI } from "@google/generative-ai"; // Use import instead of require
+import { LoadingSpinner } from '~/components/loadingSpinner'; 
 
 type FileDetails = {
   name: string;
@@ -136,8 +137,22 @@ export async function action({ request, params }: ActionFunctionArgs) {
 export default function Dashboard() {
   const { fileDetails, comments, summary } = useLoaderData<typeof loader>();
   const [rating, setRating] = useState(0);
+  
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    // Simulate a network request or some async operation
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 3000); // Adjust the timeout as necessary
+  }, []);
 
   return (
+    // <div>
+    //   {isLoading ? (
+    //     <div className="flex items-center justify-center h-screen">
+    //       <LoadingSpinner />
+    //     </div>
+    //   ) : (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">File Details</h1>
 
@@ -222,5 +237,7 @@ export default function Dashboard() {
         </button>
       </Form>
     </div>
+    //  )}
+    // </div>
   );
 }

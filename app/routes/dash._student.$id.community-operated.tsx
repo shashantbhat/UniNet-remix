@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLoaderData, useParams } from "@remix-run/react";
 import { LoaderFunction, json } from "@remix-run/node";
 import pool from "~/utils/db.server";
+import { LoadingSpinner } from '~/components/loadingSpinner'; 
 
 import authenticator from "~/utils/auth.server";
 
@@ -40,6 +41,14 @@ const CommunityOperated = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { id } = useParams();
 
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    // Simulate a network request or some async operation
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 3000); // Adjust the timeout as necessary
+  }, []);
+
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
   };
@@ -58,6 +67,12 @@ const CommunityOperated = () => {
   }, []);
 
   return (
+    // <div>
+    //   {isLoading ? (
+    //     <div className="flex items-center justify-center h-screen">
+    //       <LoadingSpinner />
+    //     </div>
+    //   ) : (
     <div className="flex flex-col h-screen p-4">
       <div
         className={`flex flex-col gap-4 bg-gray-100 bg-opacity-75 rounded-3xl shadow-lg p-6 w-full transition-opacity duration-1000 ${
@@ -140,6 +155,8 @@ const CommunityOperated = () => {
         </div>
       </div>
     </div>
+    // )}
+    // </div>
   );
 };
 

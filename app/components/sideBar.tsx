@@ -44,7 +44,7 @@ export default function Sidebar() {
               Community operated
             </a>
             <a
-              href="/404"
+              href="https://classroom.google.com"
               className="block text-gray-700 hover:text-gray-500 px-4 py-2 rounded-lg"
             >
               College operated

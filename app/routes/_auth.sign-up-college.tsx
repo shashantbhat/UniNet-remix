@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Form, useActionData } from "@remix-run/react";
 import { ActionFunction, json, redirect } from "@remix-run/node";
 import bcrypt from "bcrypt";
 import pool from "~/utils/db.server"; // Importing the database connection
 import "~/grad_bg.css";
 import { nanoid } from "nanoid";
+import { LoadingSpinner } from '~/components/loadingSpinner'; 
 
 type ActionData = {
     error?: string;
@@ -65,6 +66,13 @@ export const action: ActionFunction = async ({ request }) => {
 
 // Remix Form component
 export default function SignUpForm() {
+    const [isLoading, setIsLoading] = useState(true);
+    useEffect(() => {
+      // Simulate a network request or some async operation
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 3000); // Adjust the timeout as necessary
+    }, []);
     const actionData = useActionData<ActionData>();
     const [preview, setPreview] = useState<string | null>(null);
 
@@ -84,6 +92,12 @@ export default function SignUpForm() {
     };
 
     return (
+    <div>
+      {isLoading ? (
+        <div className="flex items-center justify-center h-screen">
+          <LoadingSpinner />
+        </div>
+      ) : (
         <div className="flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation">
             {/* Centered Container with White Background  style={{backgroundColor:"#F1F1F1"}} */}
             <div className="flex bg-gray-100 bg-opacity-80 rounded-3xl shadow-lg p-8 max-w-xl w-full">
@@ -293,5 +307,7 @@ export default function SignUpForm() {
                 </div>
             </div>
         </div>
+         )}
+    </div>
     );
 }

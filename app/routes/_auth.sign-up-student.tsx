@@ -4,6 +4,7 @@ import {ActionFunction, json, LoaderFunction, redirect} from "@remix-run/node";
 import bcrypt from "bcrypt";
 import pool from "~/utils/db.server"; // Importing the database connection
 import "~/grad_bg.css";
+import { LoadingSpinner } from '~/components/loadingSpinner'; 
 // import { nanoid } from 'nanoid';
 
 
@@ -173,7 +174,21 @@ export default function SignUpForm() {
     //     fetchUniversities();
     // }, []);
 
+    const [isLoading, setIsLoading] = useState(true);
+    useEffect(() => {
+      // Simulate a network request or some async operation
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 3000); // Adjust the timeout as necessary
+    }, []);
+
         return (
+        <div>
+        {isLoading ? (
+            <div className="flex items-center justify-center h-screen">
+            <LoadingSpinner />
+            </div>
+        ) : (
 
         <div className="flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation">
             {/* Centered Container with White Background  style={{backgroundColor:"#F1F1F1"}} */}
@@ -487,5 +502,7 @@ export default function SignUpForm() {
                 </div>
             </div>
         </div>
+        )}
+    </div>
     );
 }
