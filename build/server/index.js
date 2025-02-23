@@ -430,15 +430,15 @@ function StudyMaterial() {
       setUploading(false);
     }
   };
-  return /* @__PURE__ */ jsx(
+  return /* @__PURE__ */ jsx("div", { className: "flex flex-col h-screen p-4", children: /* @__PURE__ */ jsxs(
     "div",
     {
-      className: `flex flex-col gap-4 bg-gray-100 bg-opacity-75 rounded-3xl shadow-lg p-6 w-full transition-opacity duration-1000 ${isVisible ? "opacity-100" : "opacity-0"}`,
-      children: /* @__PURE__ */ jsxs("div", { className: "p-4 bg-white shadow-md rounded-md", children: [
-        /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold mb-4", children: "Study Material" }),
-        /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, children: [
-          /* @__PURE__ */ jsxs("div", { className: "mb-4", children: [
-            /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium", children: "Title" }),
+      className: `flex flex-col gap-6 bg-gray-50 bg-opacity-90 rounded-3xl shadow-2xl p-8 w-full transition-opacity duration-700 ${isVisible ? "opacity-100" : "opacity-0"}`,
+      children: [
+        /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between", children: /* @__PURE__ */ jsx("h1", { className: "text-3xl font-bold text-gray-800", children: "Study Material" }) }),
+        /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "bg-white rounded-2xl p-6 shadow-md", children: [
+          /* @__PURE__ */ jsxs("div", { className: "mb-6", children: [
+            /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium text-gray-700", children: "Title" }),
             /* @__PURE__ */ jsx(
               "input",
               {
@@ -447,24 +447,24 @@ function StudyMaterial() {
                 value: formData.title,
                 onChange: handleInputChange,
                 required: true,
-                className: "block w-full text-sm text-gray-500 border border-gray-300 bg-gray-50 focus:outline-none"
+                className: "block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3"
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs("div", { className: "mb-4", children: [
-            /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium", children: "Description" }),
+          /* @__PURE__ */ jsxs("div", { className: "mb-6", children: [
+            /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium text-gray-700", children: "Description" }),
             /* @__PURE__ */ jsx(
               "textarea",
               {
                 name: "description",
                 value: formData.description,
                 onChange: handleInputChange,
-                className: "block w-full text-sm text-gray-500 border border-gray-300 bg-gray-50 focus:outline-none"
+                className: "block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3"
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs("div", { className: "mb-4", children: [
-            /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium", children: "Upload Files" }),
+          /* @__PURE__ */ jsxs("div", { className: "mb-6", children: [
+            /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium text-gray-700", children: "Upload Files" }),
             /* @__PURE__ */ jsx(
               "input",
               {
@@ -473,7 +473,7 @@ function StudyMaterial() {
                 accept: "image/*,.pdf",
                 onChange: handleFileUpload,
                 required: true,
-                className: "block w-full text-sm text-gray-500 border border-gray-300 cursor-pointer bg-gray-50 focus:outline-none"
+                className: "block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3"
               }
             )
           ] }),
@@ -482,24 +482,68 @@ function StudyMaterial() {
             {
               type: "submit",
               disabled: uploading,
-              className: `w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md font-medium transition-all duration-200 
-            ${uploading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800"} text-white shadow-sm`,
+              className: `w-full flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-all duration-200 
+            ${uploading ? "bg-gray-400 cursor-not-allowed text-gray-200" : "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl"}`,
               children: uploading ? /* @__PURE__ */ jsxs(Fragment, { children: [
-                /* @__PURE__ */ jsxs("svg", { className: "animate-spin h-5 w-5", xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", children: [
-                  /* @__PURE__ */ jsx("circle", { className: "opacity-25", cx: "12", cy: "12", r: "10", stroke: "currentColor", strokeWidth: "4" }),
-                  /* @__PURE__ */ jsx("path", { className: "opacity-75", fill: "currentColor", d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" })
-                ] }),
+                /* @__PURE__ */ jsxs(
+                  "svg",
+                  {
+                    className: "animate-spin h-5 w-5",
+                    xmlns: "http://www.w3.org/2000/svg",
+                    fill: "none",
+                    viewBox: "0 0 24 24",
+                    children: [
+                      /* @__PURE__ */ jsx(
+                        "circle",
+                        {
+                          className: "opacity-25",
+                          cx: "12",
+                          cy: "12",
+                          r: "10",
+                          stroke: "currentColor",
+                          strokeWidth: "4"
+                        }
+                      ),
+                      /* @__PURE__ */ jsx(
+                        "path",
+                        {
+                          className: "opacity-75",
+                          fill: "currentColor",
+                          d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        }
+                      )
+                    ]
+                  }
+                ),
                 /* @__PURE__ */ jsx("span", { children: "Uploading..." })
               ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
-                /* @__PURE__ */ jsx("svg", { className: "h-5 w-5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" }) }),
+                /* @__PURE__ */ jsx(
+                  "svg",
+                  {
+                    className: "h-5 w-5",
+                    fill: "none",
+                    stroke: "currentColor",
+                    viewBox: "0 0 24 24",
+                    xmlns: "http://www.w3.org/2000/svg",
+                    children: /* @__PURE__ */ jsx(
+                      "path",
+                      {
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round",
+                        strokeWidth: "2",
+                        d: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                      }
+                    )
+                  }
+                ),
                 /* @__PURE__ */ jsx("span", { children: "Upload" })
               ] })
             }
           )
         ] })
-      ] })
+      ]
     }
-  );
+  ) });
 }
 const route2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
@@ -534,7 +578,7 @@ async function loader$2({ params }) {
     rating: row.rating
   }));
   const genAI = new GoogleGenerativeAI(
-    "AIzaSyAzyFs9KC5bZyhqQ17KTtAlSumzp89ne_o"
+    "AIzaSyAkBta4Gql98eHyenjI92zd4I-a_va11Fg"
   );
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   const ratings = comments.map((comment) => comment.rating);
@@ -611,7 +655,7 @@ function Dashboard$1() {
         "a",
         {
           href: fileDetails.downloadUrl,
-          className: "border border-black bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition mr-1.5 mt-2",
+          className: "border border-black bg-white text-black px-4 py-2 rounded-3xl hover:bg-black hover:text-white transition mr-1.5 w-full mt-2",
           download: true,
           children: "Download File"
         }
@@ -660,7 +704,7 @@ function Dashboard$1() {
         "button",
         {
           type: "submit",
-          className: "border border-black bg-black text-white px-4 py-2 rounded-3xl hover:bg-gray-800 transition mr-1.5 mt-2",
+          className: "border border-black bg-white text-black px-4 py-2 rounded-3xl hover:bg-black hover:text-white transition mr-1.5 mt-2",
           children: "Submit Review"
         }
       )
@@ -1379,7 +1423,7 @@ function Sidebar() {
       {
         onClick: () => window.location.href = "/404",
         className: "flex items-center justify-between mt-2 mb-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors",
-        children: /* @__PURE__ */ jsx("span", { className: "font-medium", children: "Mentoriship Program" })
+        children: /* @__PURE__ */ jsx("span", { className: "font-medium", children: "Mentorship Program" })
       }
     ),
     /* @__PURE__ */ jsx(
@@ -1540,6 +1584,67 @@ function PopoverExample1() {
                   /* @__PURE__ */ jsxs("div", { children: [
                     /* @__PURE__ */ jsx("h3", { className: "font-medium", children: "Yash Dhingra" }),
                     /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-500", children: "@yash-dhingra" })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm text-gray-600", children: "Student at JIIT" })
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsx(HoverCard.Arrow, { className: "fill-white" })
+        ]
+      }
+    ) }) })
+  ] });
+}
+function PopoverExample2() {
+  return /* @__PURE__ */ jsxs(HoverCard.Root, { openDelay: 200, closeDelay: 300, children: [
+    /* @__PURE__ */ jsx(HoverCard.Trigger, { asChild: true, children: /* @__PURE__ */ jsx(
+      "a",
+      {
+        className: "rounded-full inline-block",
+        href: "https://github.com/Shivankbutani",
+        target: "_blank",
+        rel: "noreferrer noopener",
+        children: /* @__PURE__ */ jsx(
+          "img",
+          {
+            className: "rounded-full",
+            src: "https://avatars.githubusercontent.com/u/188903980?v=4",
+            alt: "Shivanks's image",
+            width: 45,
+            height: 45
+          }
+        )
+      }
+    ) }),
+    /* @__PURE__ */ jsx(AnimatePresence, { children: /* @__PURE__ */ jsx(HoverCard.Portal, { children: /* @__PURE__ */ jsxs(
+      HoverCard.Content,
+      {
+        className: "bg-white rounded-lg shadow-lg p-4 w-64",
+        sideOffset: 5,
+        children: [
+          /* @__PURE__ */ jsxs(
+            motion.div,
+            {
+              initial: { opacity: 0, y: 10 },
+              animate: { opacity: 1, y: 0 },
+              exit: { opacity: 0, y: 10 },
+              transition: { duration: 0.2 },
+              children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+                  /* @__PURE__ */ jsx(
+                    "img",
+                    {
+                      className: "rounded-full",
+                      src: "https://avatars.githubusercontent.com/u/188903980?v=4",
+                      alt: "Shivanks's image",
+                      width: 45,
+                      height: 45
+                    }
+                  ),
+                  /* @__PURE__ */ jsxs("div", { children: [
+                    /* @__PURE__ */ jsx("h3", { className: "font-medium", children: "Shivank Butani" }),
+                    /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-500", children: "@Shivankbutani" })
                   ] })
                 ] }),
                 /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm text-gray-600", children: "Student at JIIT" })
@@ -1723,7 +1828,8 @@ function DashboardLayout() {
         /* @__PURE__ */ jsxs("div", { className: "flex flex-row items-center justify-center pt-12 space-x-8", children: [
           /* @__PURE__ */ jsx(TextGlitch, {}),
           /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx(PopoverExample, {}) }),
-          /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx(PopoverExample1, {}) })
+          /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx(PopoverExample1, {}) }),
+          /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx(PopoverExample2, {}) })
         ] }),
         /* @__PURE__ */ jsx("p", { className: "text-center text-gray-700 max-w-2xl mx-auto my-6 leading-relaxed", children: "UniNet was created to simplify university life by addressing key challenges like data management, study material access, and connectivity. Designed with students, admins, and developers in mind, it provides tailored dashboards, seamless file management, and a reliable platform to empower academic communities." }),
         /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col md:flex-row justify-center items-center gap-8 p-8 max-w-6xl mx-auto", children: [
@@ -1738,11 +1844,17 @@ function DashboardLayout() {
           /* @__PURE__ */ jsx("span", { className: "text-gray-800 font-semibold", children: "UniNet" }),
           /* @__PURE__ */ jsx("span", { className: "text-gray-600", children: "|" }),
           /* @__PURE__ */ jsx("a", { href: "/dash/id", className: "text-gray-600 hover:text-blue-600", children: "Dashboard" }),
-          /* @__PURE__ */ jsx("a", { href: "/resources", className: "text-gray-600 hover:text-blue-600", children: "Resources" }),
-          /* @__PURE__ */ jsx("a", { href: "/community", className: "text-gray-600 hover:text-blue-600", children: "Community" })
+          /* @__PURE__ */ jsx("a", { href: "https://github.com/shashantbhat/UniNet-Remix", className: "text-gray-600 hover:text-blue-600", children: /* @__PURE__ */ jsx("svg", { xmlns: "http://www.w3.org/2000/svg", width: "22", height: "22", fill: "#000000", viewBox: "0 0 256 256", children: /* @__PURE__ */ jsx("path", { d: "M208.31,75.68A59.78,59.78,0,0,0,202.93,28,8,8,0,0,0,196,24a59.75,59.75,0,0,0-48,24H124A59.75,59.75,0,0,0,76,24a8,8,0,0,0-6.93,4,59.78,59.78,0,0,0-5.38,47.68A58.14,58.14,0,0,0,56,104v8a56.06,56.06,0,0,0,48.44,55.47A39.8,39.8,0,0,0,96,192v8H72a24,24,0,0,1-24-24A40,40,0,0,0,8,136a8,8,0,0,0,0,16,24,24,0,0,1,24,24,40,40,0,0,0,40,40H96v16a8,8,0,0,0,16,0V192a24,24,0,0,1,48,0v40a8,8,0,0,0,16,0V192a39.8,39.8,0,0,0-8.44-24.53A56.06,56.06,0,0,0,216,112v-8A58.14,58.14,0,0,0,208.31,75.68ZM200,112a40,40,0,0,1-40,40H112a40,40,0,0,1-40-40v-8a41.74,41.74,0,0,1,6.9-22.48A8,8,0,0,0,80,73.83a43.81,43.81,0,0,1,.79-33.58,43.88,43.88,0,0,1,32.32,20.06A8,8,0,0,0,119.82,64h32.35a8,8,0,0,0,6.74-3.69,43.87,43.87,0,0,1,32.32-20.06A43.81,43.81,0,0,1,192,73.83a8.09,8.09,0,0,0,1,7.65A41.72,41.72,0,0,1,200,104Z" }) }) })
         ] }),
         /* @__PURE__ */ jsxs("div", { className: "flex items-center space-x-4", children: [
-          /* @__PURE__ */ jsx("span", { className: "text-gray-600", children: "support@uninet.edu" }),
+          /* @__PURE__ */ jsx(
+            "a",
+            {
+              href: "mailto:ask.uninet@gmail.com",
+              className: "text-gray-600 hover:text-blue-600 transition-colors duration-200",
+              children: "ask.uninet@gmail.com"
+            }
+          ),
           /* @__PURE__ */ jsxs("span", { className: "text-gray-600", children: [
             "© ",
             (/* @__PURE__ */ new Date()).getFullYear(),
@@ -2022,7 +2134,7 @@ const route9 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   CatchBoundary,
   default: App
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-B1o9-F3e.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-DEgpvRqV.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/root-BQzfzynx.css"] }, "routes/dash._student.$id.community-operated": { "id": "routes/dash._student.$id.community-operated", "parentId": "routes/dash._student.$id", "path": "community-operated", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.community-operated-Broom0Zp.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/dash._student.$id.upload-material": { "id": "routes/dash._student.$id.upload-material", "parentId": "routes/dash._student.$id", "path": "upload-material", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.upload-material-Gxx7u0VD.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/dash._student.$id.files.$fileid": { "id": "routes/dash._student.$id.files.$fileid", "parentId": "routes/dash._student.$id", "path": "files/:fileid", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.files._fileid-n0EVRIro.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/_auth.sign-up-college": { "id": "routes/_auth.sign-up-college", "parentId": "root", "path": "sign-up-college", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-college-BdJG3vxI.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-up-student": { "id": "routes/_auth.sign-up-student", "parentId": "root", "path": "sign-up-student", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-student-kjENY8XE.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/dash._student.$id": { "id": "routes/dash._student.$id", "parentId": "root", "path": "dash/:id", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id-BL95It4X.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/_auth.sign-in": { "id": "routes/_auth.sign-in", "parentId": "root", "path": "sign-in", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-in-Df1xKkPD.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/log-out": { "id": "routes/log-out", "parentId": "root", "path": "log-out", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/log-out-l0sNRNKZ.js", "imports": [], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-C0IQiAhl.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/404": { "id": "routes/404", "parentId": "root", "path": "404", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/404-BWHHjsz2.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js", "/assets/components-J4jkiaDK.js"], "css": [] } }, "url": "/assets/manifest-067a8afb.js", "version": "067a8afb" };
+const serverManifest = { "entry": { "module": "/assets/entry.client-B1o9-F3e.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-DF8tPiFN.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/root-D-m3Nspr.css"] }, "routes/dash._student.$id.community-operated": { "id": "routes/dash._student.$id.community-operated", "parentId": "routes/dash._student.$id", "path": "community-operated", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.community-operated-Broom0Zp.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/dash._student.$id.upload-material": { "id": "routes/dash._student.$id.upload-material", "parentId": "routes/dash._student.$id", "path": "upload-material", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.upload-material-BLCwlACz.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/dash._student.$id.files.$fileid": { "id": "routes/dash._student.$id.files.$fileid", "parentId": "routes/dash._student.$id", "path": "files/:fileid", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.files._fileid-DqHfVmiz.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/_auth.sign-up-college": { "id": "routes/_auth.sign-up-college", "parentId": "root", "path": "sign-up-college", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-college-BdJG3vxI.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-up-student": { "id": "routes/_auth.sign-up-student", "parentId": "root", "path": "sign-up-student", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-student-kjENY8XE.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/dash._student.$id": { "id": "routes/dash._student.$id", "parentId": "root", "path": "dash/:id", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id-6roXdoFR.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/_auth.sign-in": { "id": "routes/_auth.sign-in", "parentId": "root", "path": "sign-in", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-in-Df1xKkPD.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/log-out": { "id": "routes/log-out", "parentId": "root", "path": "log-out", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/log-out-l0sNRNKZ.js", "imports": [], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-C0IQiAhl.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/404": { "id": "routes/404", "parentId": "root", "path": "404", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/404-BWHHjsz2.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js", "/assets/components-J4jkiaDK.js"], "css": [] } }, "url": "/assets/manifest-b6f3a462.js", "version": "b6f3a462" };
 const mode = "production";
 const assetsBuildDirectory = "build/client";
 const basename = "/";

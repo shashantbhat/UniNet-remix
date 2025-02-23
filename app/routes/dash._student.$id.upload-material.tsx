@@ -30,7 +30,7 @@ export const action = async ({ request }: { request: Request }) => {
     // Azure Blob Storage Upload
     const accountName = "uninetfilestorage";
     const sasToken =
-      "sv=2022-11-02&ss=bfqt&srt=o&sp=rwdlacupiytfx&se=2025-11-19T01:04:20Z&st=2024-11-18T17:04:20Z&spr=https&sig=W8xjgWJg%2B1iglBBwGFZ2Ch3ztceukLpha%2BLmYc4V%2Fdc%3D";
+      "sp=racwdl&st=2025-02-23T12:50:49Z&se=2025-02-23T20:50:49Z&sip=0.0.0.0-255.255.255.255&sv=2022-11-02&sr=c&sig=p8L6HkHd4xcHvLjT%2FB586e49AORMmZejnE9Vkjhex3U%3D";
     const containerName = "blobby";
 
     const blobServiceClient = new BlobServiceClient(
