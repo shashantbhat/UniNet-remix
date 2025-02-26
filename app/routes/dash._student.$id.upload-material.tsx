@@ -87,7 +87,6 @@ export const action = async ({ request }: { request: Request }) => {
         const new_tag_result = await pool.query(new_tag_query, new_tag_values);
         tag_id.rows.push(new_tag_result.rows[0]);
       }
-      // const tag_id = await pool.query(tag_id_query, [3423543]);
       console.log(tag_id);
       const tagQueryValues = [fileId, tag_id.rows[0].id, 1];
       await pool.query(tagQuery, tagQueryValues);
