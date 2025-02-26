@@ -386,5 +386,3 @@ export default function StudyMaterial() {
     </div>
   );
 }
-
-

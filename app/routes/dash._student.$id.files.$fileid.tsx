@@ -113,7 +113,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   console.log(formData.get("rating"));
   console.log(userId);
   const client = await pool.connect();
-  client.query(
+  await client.query(
     "INSERT INTO ratings (rater_id, file_id, rating, comment) VALUES ($1, $2, $3, $4)",
     [userId, params.fileid, formData.get("rating"), formData.get("comment")]
   );
@@ -123,10 +123,40 @@ export async function action({ request, params }: ActionFunctionArgs) {
     [params.fileid]
   );
   console.log(result.rows[0].average_rating);
-  client.query("UPDATE files SET average_rating = $1 WHERE id = $2", [
+  await client.query("UPDATE files SET average_rating = $1 WHERE id = $2", [
     result.rows[0].average_rating,
     params.fileid,
   ]);
+
+  // Update tag relevance scores
+  const tagRatings = formData
+    .getAll("tagRating")
+    .map((rating) => JSON.parse(rating));
+  for (const { tagName, rating } of tagRatings) {
+    const tagResult = await client.query(
+      `
+      SELECT file_tags.id, file_tag_assignments.relevance_score 
+      FROM file_tags
+      JOIN file_tag_assignments ON file_tags.id = file_tag_assignments.tag_id
+      WHERE file_tags.name = $1;
+      `,
+      [tagName]
+    );
+
+    // const tagResult = await client.query(
+    //   "SELECT id FROM file_tags WHERE name = $1",
+    //   [tagName]
+    // );
+    const tagId = tagResult.rows[0].id;
+    const currentRelevanceScore = tagResult.rows[0].relevance_score;
+
+    const newRelevanceScore = (currentRelevanceScore + rating) / 2;
+
+    await client.query(
+      "UPDATE file_tag_assignments SET relevance_score = $1 WHERE file_id = $2 AND tag_id = $3",
+      [newRelevanceScore, params.fileid, tagId]
+    );
+  }
 
   return json({ success: true });
 }
@@ -134,6 +164,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
 export default function Dashboard() {
   const { fileDetails, comments, summary } = useLoaderData<typeof loader>();
   const [rating, setRating] = useState(0);
+  const [tagRatings, setTagRatings] = useState<{ [key: string]: number }>({});
+
+  const handleTagRatingChange = (tagName: string, rating: number) => {
+    setTagRatings((prevRatings) => ({
+      ...prevRatings,
+      [tagName]: rating,
+    }));
+  };
 
   return (
     <div className="p-6">
@@ -152,8 +190,7 @@ export default function Dashboard() {
           <b>Date:</b> {fileDetails.uploadDate}
         </p>
         <p className="mb-1">
-          <b >Tags:</b>
-          <br />
+          <b>Tags:</b>
           {fileDetails.tags.map((tag) => (
             <span
               key={tag.name}
@@ -162,6 +199,29 @@ export default function Dashboard() {
               {tag.name} ({tag.relevanceScore} ★)
             </span>
           ))}
+          {/* {fileDetails.tags.map((tag) => (
+            <div key={tag.name} className="mb-2">
+              <span className="bg-gray-200 m-1 text-gray-700 px-3 py-1 rounded-full">
+                {tag.name} ({tag.relevanceScore} ★)
+              </span>
+              <div className="flex gap-2 mt-1">
+                {[0, 0.25, 0.5, 0.75, 1].map((score) => (
+                  <button
+                    key={score}
+                    type="button"
+                    onClick={() => handleTagRatingChange(tag.name, score)}
+                    className={`text-xl ${
+                      tagRatings[tag.name] >= score
+                        ? "text-black-400"
+                        : "text-gray-300"
+                    }`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))} */}
         </p>
         <p className="mb-1">
           <b>AI File Sentiment Analysis:</b>
@@ -216,6 +276,31 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
+        <hr />
+        <br />
+        {fileDetails.tags.map((tag) => (
+          <div key={tag.name} className="mb-2">
+            <span className="bg-gray-200 mb-1 text-gray-700 px-3 py-1 rounded-full">
+              {tag.name} ({tag.relevanceScore} ★)
+            </span>
+            <div className="flex gap-2 mt-1">
+              {[0, 0.25, 0.5, 0.75, 1].map((score) => (
+                <button
+                  key={score}
+                  type="button"
+                  onClick={() => handleTagRatingChange(tag.name, score)}
+                  className={`text-xl ${
+                    tagRatings[tag.name] >= score
+                      ? "text-black-400"
+                      : "text-gray-300"
+                  }`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
         <input type="hidden" name="rating" value={rating} />
         <textarea
           name="comment"
@@ -223,6 +308,17 @@ export default function Dashboard() {
           placeholder="Write your comment..."
           rows={3}
         />
+        {fileDetails.tags.map((tag) => (
+          <input
+            key={tag.name}
+            type="hidden"
+            name="tagRating"
+            value={JSON.stringify({
+              tagName: tag.name,
+              rating: tagRatings[tag.name] || 0,
+            })}
+          />
+        ))}
         <button
           type="submit"
           className="border border-black bg-white text-black px-4 py-2 rounded-3xl hover:bg-black hover:text-white transition mr-1.5 mt-2"
