@@ -280,7 +280,7 @@ export default function StudyMaterial() {
               <button
                 type="button"
                 onClick={addNewTag}
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+                className="border border-black bg-white text-black hover:bg-black hover:text-white transition px-4 py-2 rounded-lg"
               >
                 Add
               </button>
@@ -334,7 +334,7 @@ export default function StudyMaterial() {
             ${
               uploading
                 ? "bg-gray-400 cursor-not-allowed text-gray-200"
-                : "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl"
+                : "border border-black bg-white text-black hover:bg-black hover:text-white transition"
             }`}
           >
             {uploading ? (
