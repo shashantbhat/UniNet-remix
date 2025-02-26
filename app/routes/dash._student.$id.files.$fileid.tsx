@@ -152,10 +152,13 @@ export default function Dashboard() {
           <b>Date:</b> {fileDetails.uploadDate}
         </p>
         <p className="mb-1">
-          <b>Tags:</b>
+          <b >Tags:</b>
           <br />
           {fileDetails.tags.map((tag) => (
-            <span key={tag.name} className="inline-block mr-2">
+            <span
+              key={tag.name}
+              className="bg-gray-200 m-1 text-gray-700 px-3 py-1 rounded-full"
+            >
               {tag.name} ({tag.relevanceScore} ★)
             </span>
           ))}
