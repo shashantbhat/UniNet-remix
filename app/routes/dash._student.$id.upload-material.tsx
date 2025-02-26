@@ -52,31 +52,12 @@ export const action = async ({ request }: { request: Request }) => {
     const fileUrl = blockBlobClient.url;
 
     // Save Metadata in PostgreSQL
-    // const query = `
-    //   INSERT INTO files (
-    //     uploader_id, university_id, title, description, file_url, tags
-    //   ) VALUES ($1, $2, $3, $4, $5, $6)
-    // `;
-    // const values = [
-    //   uploaderId,
-    //   universityId,
-    //   title,
-    //   description,
-    //   fileUrl,
-    //   tags,
-    // ];
     const query = `
       INSERT INTO files (
         uploader_id, university_id, title, description, file_url
       ) VALUES ($1, $2, $3, $4, $5)
     `;
-    const values = [
-      uploaderId,
-      universityId,
-      title,
-      description,
-      fileUrl
-    ];
+    const values = [uploaderId, universityId, title, description, fileUrl];
 
     await pool.query(query, values);
 
@@ -91,15 +72,23 @@ export const action = async ({ request }: { request: Request }) => {
     const fileValues = [fileUrl];
     const fileResult = await pool.query(fileQuery, fileValues);
     const fileId = fileResult.rows[0].id; // Get the file ID  of the uploaded file
-    // console.log(fileId);
 
-    // // loop through the tags and save them in the file_tag_assignments table
-    for (const tag of tags) {
+    for (const tag of tags) { 
       const tag_id_query = `
       SELECT id FROM file_tags WHERE name = $1
     `;
-    const tag_id= await pool.query(tag_id_query, [tag]);
-    // console.log(tag_id);
+      const tag_id = await pool.query(tag_id_query, [tag]);
+      if (tag_id.rows.length === 0) {
+        const new_tag_query = `
+          INSERT INTO file_tags (name) VALUES ($1)
+          RETURNING id
+        `;
+        const new_tag_values = [tag];
+        const new_tag_result = await pool.query(new_tag_query, new_tag_values);
+        tag_id.rows.push(new_tag_result.rows[0]);
+      }
+      // const tag_id = await pool.query(tag_id_query, [3423543]);
+      console.log(tag_id);
       const tagQueryValues = [fileId, tag_id.rows[0].id, 1];
       await pool.query(tagQuery, tagQueryValues);
     }
@@ -124,6 +113,7 @@ export default function StudyMaterial() {
     description: "",
     tags: [] as string[],
   });
+  const [newTag, setNewTag] = useState("");
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -147,6 +137,27 @@ export default function StudyMaterial() {
         ...prevData,
         tags: [...prevData.tags, selectedTag],
       }));
+    }
+  };
+
+  const handleNewTagChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setNewTag(event.target.value);
+  };
+
+  const addNewTag = () => {
+    // Add new tag to the tags list
+    // const new_tag_query=`
+    // INSERT INTO file_tags (name) VALUES ($1)
+    // `;
+    // const new_tag_values=[newTag];
+    // pool.query(new_tag_query,new_tag_values);
+
+    if (newTag && !formData.tags.includes(newTag)) {
+      setFormData((prevData) => ({
+        ...prevData,
+        tags: [...prevData.tags, newTag],
+      }));
+      setNewTag("");
     }
   };
 
@@ -246,19 +257,35 @@ export default function StudyMaterial() {
             <label className="block mb-2 text-sm font-medium text-gray-700">
               Tag
             </label>
-            <select
-              name="tag"
-              value=""
-              onChange={handleTagChange}
-              className="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3"
-            >
-              <option value="">Select a tag</option>
-              {tags.map((tag: { id: number; name: string }) => (
-                <option key={tag.id} value={tag.name}>
-                  {tag.name}
-                </option>
-              ))}
-            </select>
+            <div className="flex gap-2">
+              <select
+                name="tag"
+                value=""
+                onChange={handleTagChange}
+                className="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3"
+              >
+                <option value="">Select a tag</option>
+                {tags.map((tag: { id: number; name: string }) => (
+                  <option key={tag.id} value={tag.name}>
+                    {tag.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={newTag}
+                onChange={handleNewTagChange}
+                placeholder="New tag name"
+                className="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3"
+              />
+              <button
+                type="button"
+                onClick={addNewTag}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+              >
+                Add
+              </button>
+            </div>
           </div>
 
           {/* Selected Tags */}
@@ -360,3 +387,5 @@ export default function StudyMaterial() {
     </div>
   );
 }
+
+
