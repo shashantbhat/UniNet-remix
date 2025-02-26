@@ -1,4 +1,3 @@
-// app/routes/dash._student.$id.files.$fileid.tsx
 import { useParams, Form, useLoaderData } from "@remix-run/react";
 import {
   LoaderFunctionArgs,
@@ -18,6 +17,7 @@ type FileDetails = {
   uploadedBy: string;
   uploadDate: string;
   downloadUrl: string;
+  tags: { name: string; relevanceScore: number }[];
 };
 
 type Comment = {
@@ -36,7 +36,6 @@ export async function loader({ params }: LoaderFunctionArgs) {
   const result1 = await client.query("SELECT * FROM users WHERE id = $1", [
     result.rows[0].uploader_id,
   ]);
-  // TODO: Replace with actual data fetching
 
   const fileDetails: FileDetails = {
     name: result.rows[0].title,
@@ -44,7 +43,9 @@ export async function loader({ params }: LoaderFunctionArgs) {
     uploadedBy: result1.rows[0].name,
     uploadDate: result.rows[0].upload_date,
     downloadUrl: result.rows[0].file_url,
+    tags: [],
   };
+
   const result2 = await client.query(
     "SELECT ratings.rater_id, ratings.rating, ratings.comment, ratings.created_at, users.name as rater_name FROM ratings JOIN users ON ratings.rater_id = users.id WHERE ratings.file_id = $1",
     [params.fileid]
@@ -56,25 +57,26 @@ export async function loader({ params }: LoaderFunctionArgs) {
     rating: row.rating,
   }));
 
-  //
-  // Make sure to include these imports:
-  // import { GoogleGenerativeAI } from "@google/generative-ai";
+  const result3 = await client.query(
+    "SELECT file_tags.name, file_tag_assignments.relevance_score FROM file_tag_assignments JOIN file_tags ON file_tag_assignments.tag_id = file_tags.id WHERE file_tag_assignments.file_id = $1",
+    [params.fileid]
+  );
+  fileDetails.tags = result3.rows.map((row) => ({
+    name: row.name,
+    relevanceScore: row.relevance_score,
+  }));
+
   const genAI = new GoogleGenerativeAI(
     "AIzaSyAkBta4Gql98eHyenjI92zd4I-a_va11Fg"
   );
-  // const genAI = new GoogleGenerativeAI(
-  //   "AIzaSyAzyFs9KC5bZyhqQ17KTtAlSumzp89ne_o"
-  // );
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-  // Pass all the ratings and comments to the model and ask it to provide an analysis of all the comments and ratings and tell if the file is good or bad.
   const ratings = comments.map((comment) => comment.rating);
   const comments_text = comments.map((comment) => comment.comment);
 
   console.log(ratings);
   console.log(comments_text);
 
-  // const prompt = "";
   const prompt = `
 You are an AI model that analyzes user feedback. Below are the ratings and comments provided by users for a specific file with name ${
     fileDetails.name
@@ -105,26 +107,22 @@ Based on the above ratings and comments, what is the overall sentiment towards t
 
 export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
-  // Extract user ID
   const { id: userId } = await authenticator.isAuthenticated(request);
 
-  // Log rating, comment, and user ID
   console.log(formData.get("comment"));
   console.log(formData.get("rating"));
-  console.log(userId); // Log user ID here
+  console.log(userId);
   const client = await pool.connect();
   client.query(
     "INSERT INTO ratings (rater_id, file_id, rating, comment) VALUES ($1, $2, $3, $4)",
     [userId, params.fileid, formData.get("rating"), formData.get("comment")]
   );
 
-  // Scan through all the ratings for the file calculate the average rating
   const result = await client.query(
     "SELECT AVG(rating) as average_rating FROM ratings WHERE file_id = $1",
     [params.fileid]
   );
   console.log(result.rows[0].average_rating);
-  // Update the average rating in the files table
   client.query("UPDATE files SET average_rating = $1 WHERE id = $2", [
     result.rows[0].average_rating,
     params.fileid,
@@ -154,6 +152,15 @@ export default function Dashboard() {
           <b>Date:</b> {fileDetails.uploadDate}
         </p>
         <p className="mb-1">
+          <b>Tags:</b>
+          <br />
+          {fileDetails.tags.map((tag) => (
+            <span key={tag.name} className="inline-block mr-2">
+              {tag.name} ({tag.relevanceScore} ★)
+            </span>
+          ))}
+        </p>
+        <p className="mb-1">
           <b>AI File Sentiment Analysis:</b>
           <br />
           {summary}
@@ -178,7 +185,6 @@ export default function Dashboard() {
               <strong>{comment.user}</strong>
               <span className="text-black-400">
                 {"★".repeat(comment.rating)}
-                {/* Space */}
                 {" ("}
                 {comment.rating}
                 {"/5)"}
@@ -188,7 +194,7 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
-      {/* ADD COmment */}
+      {/* Add Comment */}
       <Form method="post" className="bg-white p-4 rounded-lg shadow mt-6">
         <div className="mb-4">
           <label className="block mb-2">Rating:</label>
