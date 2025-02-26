@@ -279,20 +279,18 @@ export default function Dashboard() {
         <hr />
         <br />
         {fileDetails.tags.map((tag) => (
-          <div key={tag.name} className="mb-2">
+          <div key={tag.name} className="mb-2 flex items-center">
             <span className="bg-gray-200 mb-1 text-gray-700 px-3 py-1 rounded-full">
               {tag.name} ({tag.relevanceScore} ★)
             </span>
-            <div className="flex gap-2 mt-1">
+            <div className="flex gap-2 ml-2 mt-1">
               {[0, 0.25, 0.5, 0.75, 1].map((score) => (
                 <button
                   key={score}
                   type="button"
                   onClick={() => handleTagRatingChange(tag.name, score)}
                   className={`text-xl ${
-                    tagRatings[tag.name] >= score
-                      ? "text-black-400"
-                      : "text-gray-300"
+                    tagRatings[tag.name] >= score ? "text-black-400" : "text-gray-300"
                   }`}
                 >
                   ★
