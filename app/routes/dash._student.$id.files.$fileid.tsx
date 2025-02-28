@@ -179,10 +179,10 @@ export default function Dashboard() {
 
       {/* File Info and Download Section */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <h2 className="text-5xl mb-2">
+        <h2 className="text-3xl mb-2">
           <b>{fileDetails.name}</b>
         </h2>
-        <h2 className="text-2xl mb-2">{fileDetails.description}</h2>
+        <p className="mb-2">{fileDetails.description}</p>
         <p className="mb-1">
           <b>Uploaded by:</b> {fileDetails.uploadedBy}
         </p>

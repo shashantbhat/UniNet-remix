@@ -118,42 +118,41 @@ const CommunityOperated = () => {
           </div>
         </div>
         <div className="flex-1 overflow-auto">
-          <table className="min-w-full bg-white">
-            <thead>
-              <tr>
-                <th className="py-2 px-4 border-b text-center">File Name</th>
-                <th className="py-2 px-4 border-b text-center">Description</th>
-                <th className="py-2 px-4 border-b text-center">Upload Date</th>
-                <th className="py-2 px-4 border-b text-center">Average Rating</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredFiles?.map((file: any) => (
-                <tr key={file.id}>
-                  <td className="py-2 px-4 border-b text-center">
-                    <a
-                      // href={file.file_url}
-                      href={`/dash/id/files/${file.id}`} // Link to the file URL
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:text-black"
-                    >
-                      {file.title}
-                    </a>
-                  </td>
-                  <td className="py-2 px-4 border-b text-center">
-                    {file.description}
-                  </td>
-                  <td className="py-2 px-4 border-b text-center">
-                    {new Date(file.upload_date).toLocaleDateString()}
-                  </td>
-                  <td className="py-2 px-4 border-b text-center">
-                    {file.average_rating.toFixed(1)} ★
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <table className="min-w-full bg-white table-fixed">
+  <thead>
+    <tr className="h-12"> {/* Sets uniform row height */}
+      <th className="py-2 px-4 border-b text-center w-40">File Name</th>
+      <th className="py-2 px-4 border-b text-center w-64">Description</th>
+      <th className="py-2 px-4 border-b text-center w-36">Upload Date</th>
+      <th className="py-2 px-4 border-b text-center w-32">Average Rating</th>
+    </tr>
+  </thead>
+  <tbody>
+    {filteredFiles?.map((file: any) => (
+      <tr key={file.id} className="h-14"> {/* Ensures uniform row height */}
+        <td className="py-2 px-4 border-b text-center w-40 truncate">
+          <a
+            href={`/dash/id/files/${file.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:text-black"
+          >
+            {file.title}
+          </a>
+        </td>
+        <td className="py-2 px-4 border-b text-center w-64">
+          <span className="line-clamp-2">{file.description}</span>
+        </td>
+        <td className="py-2 px-4 border-b text-center w-36 truncate">
+          {new Date(file.upload_date).toLocaleDateString()}
+        </td>
+        <td className="py-2 px-4 border-b text-center w-32 truncate">
+          {file.average_rating.toFixed(1)} ★
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
         </div>
       </div>
     </div>
