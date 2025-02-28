@@ -84,7 +84,7 @@ export default function SignUpForm() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation">
+        <div className="flex items-center justify-center min-h-screen backdrop-blur-3xl">
             {/* Centered Container with White Background  style={{backgroundColor:"#F1F1F1"}} */}
             <div className="flex bg-gray-100 bg-opacity-80 rounded-3xl shadow-lg p-8 max-w-xl w-full">
                 <div className="flex justify-center p-10">
