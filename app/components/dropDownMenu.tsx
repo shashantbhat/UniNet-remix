@@ -16,7 +16,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ tags, selectedTags, onSelec
         {tags.map((tag) => (
           <li
             key={tag.id}
-            className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${selectedTags.includes(tag.id) ? 'bg-gray-200' : ''}`}
+            className={`px-3 py-1 m-1 hover:bg-gray-400 bg-gray-200 cursor-pointer rounded-full ${selectedTags.includes(tag.id) ? 'bg-gray-400' : ''}`}
             onClick={() => onSelectTag(tag.id)}
           >
             {tag.name}
