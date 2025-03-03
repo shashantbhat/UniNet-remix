@@ -136,8 +136,8 @@ const CommunityOperated = () => {
             </thead>
             <tbody>
               {filteredFiles?.map((file: any) => (
-                <tr key={file.id} className="h-14"> {/* Ensures uniform row height */}
-                  <td className="py-2 px-4 border-b text-center w-40 truncate">
+                <tr key={file.id} className="h-10"> {/* Ensures uniform row height */}
+                  <td className="py-2 px-2 border-b text-center w-40 truncate">
                     <a
                       href={`/dash/id/files/${file.id}`}
                       target="_blank"
@@ -147,13 +147,13 @@ const CommunityOperated = () => {
                       {file.title}
                     </a>
                   </td>
-                  <td className="py-2 px-4 border-b text-center w-64">
-                    <span className="line-clamp-2">{file.description}</span>
+                  <td className="py-2 px-2 border-b text-center w-64">
+                    <span className="line-clamp-1">{file.description}</span>
                   </td>
-                  <td className="py-2 px-4 border-b text-center w-36 truncate">
+                  <td className="py-2 px-2 border-b text-center w-36 truncate">
                     {new Date(file.upload_date).toLocaleDateString()}
                   </td>
-                  <td className="py-2 px-4 border-b text-center w-32 truncate">
+                  <td className="py-2 px-2 border-b text-center w-32 truncate">
                     {file.average_rating.toFixed(1)} ★
                   </td>
                 </tr>
