@@ -3,7 +3,7 @@ import { Form, useActionData } from "@remix-run/react";
 import { ActionFunction, json, redirect } from "@remix-run/node";
 import bcrypt from "bcrypt";
 import pool from "~/utils/db.server"; // Importing the database connection
-import "~/grad_bg.css";
+import "~/Styles/grad_bg.css";
 import { nanoid } from "nanoid";
 
 type ActionData = {

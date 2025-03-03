@@ -7,7 +7,7 @@ import { Form, useLoaderData } from "@remix-run/react";
 import authenticator from "~/utils/auth.server";
 import { sessionStorage } from "~/utils/session.server";
 import React, { useEffect, useState } from "react";
-import "app/grad_bg.css";
+import "~/Styles/grad_bg.css";
 /**
  * called when the user hits button to login
  *

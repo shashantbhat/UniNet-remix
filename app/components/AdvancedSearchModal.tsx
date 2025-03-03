@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./AdvancedSearchModal.css"; // Import the CSS file
+import "../Styles/AdvancedSearchModal.css"; // Import the CSS file
 
 interface AdvancedSearchModalProps {
   tags: { id: number; name: string }[];

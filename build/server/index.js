@@ -4,7 +4,7 @@ import { createReadableStreamFromReadable, createCookieSessionStorage, json, red
 import { RemixServer, Outlet, Meta, Links, ScrollRestoration, Scripts, useLoaderData, useParams, Form, useActionData, useNavigate as useNavigate$1, useLocation, Link } from "@remix-run/react";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import pg from "pg";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
@@ -216,6 +216,100 @@ authenticator.use(
     }
   })
 );
+const DropdownMenu = ({
+  tags,
+  selectedTags,
+  onSelectTag
+}) => {
+  return /* @__PURE__ */ jsxs("div", { className: "absolute top-full left-0 mt-2 w-full bg-white border border-gray-300 rounded-xl text-sm shadow-lg z-50", children: [
+    /* @__PURE__ */ jsx("div", { className: "flex items-center px-2 pt-4", children: /* @__PURE__ */ jsx("span", { className: "font-medium", children: "Search using tags:" }) }),
+    /* @__PURE__ */ jsx("ul", { className: "flex flex-wrap py-2", children: tags.map((tag) => /* @__PURE__ */ jsx(
+      "li",
+      {
+        className: `px-3 py-1 m-1 hover:bg-gray-400 bg-gray-200 cursor-pointer rounded-full ${selectedTags.includes(tag.id) ? "bg-gray-400" : ""}`,
+        onClick: () => onSelectTag(tag.id),
+        children: tag.name
+      },
+      tag.id
+    )) })
+  ] });
+};
+const AdvancedSearchModal = ({
+  tags,
+  isOpen,
+  onClose
+}) => {
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [relevanceScores, setRelevanceScores] = useState({});
+  const handleTagSelection = (tagId) => {
+    setSelectedTags(
+      (prevSelectedTags) => prevSelectedTags.includes(tagId) ? prevSelectedTags.filter((id) => id !== tagId) : [...prevSelectedTags, tagId]
+    );
+  };
+  const handleRelevanceScoreChange = (tagId, score) => {
+    setRelevanceScores((prevScores) => ({
+      ...prevScores,
+      [tagId]: score
+    }));
+  };
+  if (!isOpen) return null;
+  return /* @__PURE__ */ jsx("div", { className: "fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50", children: /* @__PURE__ */ jsxs("div", { className: "bg-white rounded-lg p-6 w-1/3", children: [
+    /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold mb-4", children: "Advanced Search" }),
+    /* @__PURE__ */ jsx("hr", {}),
+    /* @__PURE__ */ jsx("h1", { className: "text-xl font-semibold mb-4 pt-4", children: "Enter Prompt (AI Tag Analysis)" }),
+    /* @__PURE__ */ jsx("form", { children: /* @__PURE__ */ jsx("div", { className: "flex items-center mb-2 w-full", children: /* @__PURE__ */ jsx(
+      "input",
+      {
+        type: "text",
+        className: "rounded-xl bg-gray-100 w-full h-auto p-3 text-sm font-medium focus:outline-none focus:ring-1 focus:ring-black transition-all hover:border-black duration-200",
+        placeholder: "Enter prompt"
+      }
+    ) }) }),
+    /* @__PURE__ */ jsx("h1", { className: "text-xl font-semibold mb-4 pt-4", children: "Search using tags:" }),
+    /* @__PURE__ */ jsxs("form", { children: [
+      /* @__PURE__ */ jsx("div", { className: "flex flex-wrap", children: tags.map((tag) => /* @__PURE__ */ jsx("div", { className: "flex items-center mb-2", children: /* @__PURE__ */ jsx(
+        "div",
+        {
+          className: `px-3 py-1 m-1 hover:bg-gray-400 bg-gray-200 cursor-pointer rounded-full ${selectedTags.includes(tag.id) ? "bg-gray-400" : ""}`,
+          onClick: () => handleTagSelection(tag.id),
+          children: tag.name
+        }
+      ) }, tag.id)) }),
+      /* @__PURE__ */ jsx("hr", {}),
+      /* @__PURE__ */ jsx("div", { className: "mt-4", children: selectedTags.map((tagId) => {
+        const tag = tags.find((t) => t.id === tagId);
+        return /* @__PURE__ */ jsxs("div", { className: "flex items-center mb-2", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-1/2", children: /* @__PURE__ */ jsx("span", { className: " mr-2 px-3 py-1 bg-gray-200 cursor-pointer rounded-full", children: tag == null ? void 0 : tag.name }) }),
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              type: "range",
+              min: "0",
+              max: "1",
+              step: "0.01",
+              value: relevanceScores[tagId] || 0,
+              onChange: (e) => handleRelevanceScoreChange(
+                tagId,
+                parseFloat(e.target.value)
+              ),
+              className: "slider ml-2"
+            }
+          ),
+          /* @__PURE__ */ jsx("span", { className: "ml-2", children: relevanceScores[tagId] || 0 })
+        ] }, tagId);
+      }) }),
+      /* @__PURE__ */ jsx("div", { className: "flex justify-end mt-4", children: /* @__PURE__ */ jsx(
+        "button",
+        {
+          type: "button",
+          className: "border border-black bg-white text-black px-4 py-2 rounded-xl hover:bg-black hover:text-white transition",
+          onClick: onClose,
+          children: "Close"
+        }
+      ) })
+    ] })
+  ] }) });
+};
 const loader$4 = async ({ request }) => {
   const client = await pool.connect();
   try {
@@ -224,115 +318,181 @@ const loader$4 = async ({ request }) => {
       throw new Error("User not authenticated");
     }
     const universityId = user == null ? void 0 : user.university_id;
-    const result = await client.query(
+    const filesResult = await client.query(
       "SELECT * FROM files WHERE university_id = $1",
       [universityId]
     );
-    return json(result.rows);
+    const tagsResult = await client.query("SELECT * FROM file_tags");
+    const fileTagAssignmentsResult = await client.query(
+      "SELECT * FROM file_tag_assignments"
+    );
+    return json({
+      files: filesResult.rows,
+      tags: tagsResult.rows,
+      fileTagAssignments: fileTagAssignmentsResult.rows
+    });
   } catch (error) {
-    console.error("Error fetching files:", error);
-    return json({ error: "Failed to fetch files" }, { status: 500 });
+    console.error("Error fetching files or tags:", error);
+    return json({ error: "Failed to fetch files or tags" }, { status: 500 });
   } finally {
     client.release();
   }
 };
 const CommunityOperated = () => {
-  const files = useLoaderData();
-  useState("");
+  const { files, tags, fileTagAssignments } = useLoaderData();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { id } = useParams();
-  const filteredFiles = files == null ? void 0 : files.filter(
-    (file) => file.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const handleSearchClick = () => {
-    alert("Search clicked!");
+  const dropdownRef = useRef(null);
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
   };
+  const handleSearchClick = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+  const handleSelectTag = (tagId) => {
+    setSelectedTags(
+      (prevSelectedTags) => prevSelectedTags.includes(tagId) ? prevSelectedTags.filter((id2) => id2 !== tagId) : [...prevSelectedTags, tagId]
+    );
+  };
+  const handleClickOutside = (event) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      setIsDropdownOpen(false);
+    }
+  };
+  useEffect(() => {
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+  const filteredFiles = files == null ? void 0 : files.filter((file) => {
+    const fileTags = fileTagAssignments.filter((assignment) => assignment.file_id === file.id).map((assignment) => assignment.tag_id);
+    return file.title.toLowerCase().includes(searchQuery.toLowerCase()) && (selectedTags.length === 0 || selectedTags.every((tagId) => fileTags.includes(tagId)));
+  });
   const [isVisible, setIsVisible] = useState(false);
   useEffect(() => {
     setIsVisible(true);
   }, []);
-  return /* @__PURE__ */ jsx("div", { className: "flex flex-col h-screen p-4", children: /* @__PURE__ */ jsxs(
-    "div",
-    {
-      className: `flex flex-col gap-4 bg-gray-100 bg-opacity-75 rounded-3xl shadow-lg p-6 w-full transition-opacity duration-1000 ${isVisible ? "opacity-100" : "opacity-0"}`,
-      children: [
-        /* @__PURE__ */ jsxs("div", { className: "flex justify-between items-center w-full", children: [
-          /* @__PURE__ */ jsxs(
-            "button",
-            {
-              className: "flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-2.5 px-4 rounded-xl text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5",
-              onClick: () => {
-                window.location.href = `/dash/${id}/upload-material`;
-              },
-              children: [
-                /* @__PURE__ */ jsx(
-                  "svg",
-                  {
-                    xmlns: "http://www.w3.org/2000/svg",
-                    width: "20",
-                    height: "20",
-                    fill: "currentColor",
-                    viewBox: "0 0 256 256",
-                    children: /* @__PURE__ */ jsx("path", { d: "M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-40-64a8,8,0,0,1-8,8H136v16a8,8,0,0,1-16,0V160H104a8,8,0,0,1,0-16h16V128a8,8,0,0,1,16,0v16h16A8,8,0,0,1,160,152Z" })
-                  }
-                ),
-                /* @__PURE__ */ jsx("span", { children: "Add File" })
-              ]
-            }
-          ),
-          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 w-1/3 min-w-[300px]", children: [
-            /* @__PURE__ */ jsx(
-              "input",
-              {
-                type: "text",
-                placeholder: "Search files",
-                value: searchQuery,
-                onChange: (e) => setSearchQuery(e.target.value),
-                className: "w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200"
-              }
-            ),
+  return /* @__PURE__ */ jsxs("div", { className: "flex flex-col h-screen p-4", children: [
+    /* @__PURE__ */ jsxs(
+      "div",
+      {
+        className: `flex flex-col gap-4 bg-gray-100 bg-opacity-75 rounded-3xl shadow-lg p-6 w-full transition-opacity duration-1000 ${isVisible ? "opacity-100" : "opacity-0"}`,
+        children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex justify-between items-center w-full", children: [
             /* @__PURE__ */ jsxs(
               "button",
               {
-                className: "flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-2.5 px-4 rounded-xl text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5",
-                onClick: handleSearchClick,
+                className: "flex items-center gap-2 border border-black bg-white text-black hover:bg-black hover:text-white py-2.5 px-4 rounded-xl text-sm font-medium transition",
+                onClick: () => {
+                  window.location.href = `/dash/${id}/upload-material`;
+                },
                 children: [
-                  /* @__PURE__ */ jsx("svg", { xmlns: "http://www.w3.org/2000/svg", width: "22", height: "22", fill: "currentColor", viewBox: "0 0 256 256", children: /* @__PURE__ */ jsx("path", { d: "M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-45.54-48.85a36.05,36.05,0,1,0-11.31,11.31l11.19,11.2a8,8,0,0,0,11.32-11.32ZM104,148a20,20,0,1,1,20,20A20,20,0,0,1,104,148Z" }) }),
-                  /* @__PURE__ */ jsx("span", { children: "Search" })
+                  /* @__PURE__ */ jsx(
+                    "svg",
+                    {
+                      xmlns: "http://www.w3.org/2000/svg",
+                      width: "20",
+                      height: "20",
+                      fill: "currentColor",
+                      viewBox: "0 0 256 256",
+                      children: /* @__PURE__ */ jsx("path", { d: "M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-40-64a8,8,0,0,1-8,8H136v16a8,8,0,0,1-16,0V160H104a8,8,0,0,1,0-16h16V128a8,8,0,0,1,16,0v16h16A8,8,0,0,1,160,152Z" })
+                    }
+                  ),
+                  /* @__PURE__ */ jsx("span", { children: "Add File" })
                 ]
               }
-            )
-          ] })
-        ] }),
-        /* @__PURE__ */ jsx("div", { className: "flex-1 overflow-auto", children: /* @__PURE__ */ jsxs("table", { className: "min-w-full bg-white", children: [
-          /* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", { children: [
-            /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "File Name" }),
-            /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Description" }),
-            /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Upload Date" }),
-            /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center", children: "Average Rating" })
-          ] }) }),
-          /* @__PURE__ */ jsx("tbody", { children: filteredFiles == null ? void 0 : filteredFiles.map((file) => /* @__PURE__ */ jsxs("tr", { children: [
-            /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: /* @__PURE__ */ jsx(
-              "a",
-              {
-                href: `/dash/id/files/${file.id}`,
-                target: "_blank",
-                rel: "noopener noreferrer",
-                className: "text-blue-500",
-                children: file.title
-              }
-            ) }),
-            /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: file.description }),
-            /* @__PURE__ */ jsx("td", { className: "py-2 px-4 border-b text-center", children: new Date(file.upload_date).toLocaleDateString() }),
-            /* @__PURE__ */ jsxs("td", { className: "py-2 px-4 border-b text-center", children: [
-              file.average_rating.toFixed(1),
-              " ★"
+            ),
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  className: "flex items-center gap-2 border border-black bg-white text-black hover:bg-black hover:text-white py-2.5 px-4 rounded-xl text-sm font-medium transition",
+                  onClick: () => setIsModalOpen(true),
+                  children: [
+                    /* @__PURE__ */ jsx(
+                      "svg",
+                      {
+                        xmlns: "http://www.w3.org/2000/svg",
+                        width: "20",
+                        height: "20",
+                        fill: "currentColor",
+                        viewBox: "0 0 256 256",
+                        children: /* @__PURE__ */ jsx("path", { d: "M32,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H40A8,8,0,0,1,32,64Zm8,72h72a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm88,48H40a8,8,0,0,0,0,16h88a8,8,0,0,0,0-16Zm109.66,13.66a8,8,0,0,1-11.32,0L206,177.36A40,40,0,1,1,217.36,166l20.3,20.3A8,8,0,0,1,237.66,197.66ZM184,168a24,24,0,1,0-24-24A24,24,0,0,0,184,168Z" })
+                      }
+                    ),
+                    /* @__PURE__ */ jsx("span", { children: "Adv Search" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxs("div", { ref: dropdownRef, className: "relative flex items-center gap-2 w-1/3 min-w-[400px]", children: [
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "text",
+                    placeholder: "Search files",
+                    value: searchQuery,
+                    onChange: handleSearchChange,
+                    onClick: handleSearchClick,
+                    className: "w-full py-2.5 px-4 rounded-xl text-sm font-medium focus:outline-none focus:ring-1 focus:ring-black transition-all hover:border-black duration-200"
+                  }
+                ),
+                isDropdownOpen && /* @__PURE__ */ jsx(
+                  DropdownMenu,
+                  {
+                    tags,
+                    selectedTags,
+                    onSelectTag: handleSelectTag
+                  }
+                )
+              ] })
             ] })
-          ] }, file.id)) })
-        ] }) })
-      ]
-    }
-  ) });
+          ] }),
+          /* @__PURE__ */ jsx("div", { className: "flex-1 overflow-auto", children: /* @__PURE__ */ jsxs("table", { className: "min-w-full bg-white table-fixed", children: [
+            /* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", { className: "h-12", children: [
+              " ",
+              /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center w-40", children: "File Name" }),
+              /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center w-64", children: "Description" }),
+              /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center w-36", children: "Upload Date" }),
+              /* @__PURE__ */ jsx("th", { className: "py-2 px-4 border-b text-center w-32", children: "Average Rating" })
+            ] }) }),
+            /* @__PURE__ */ jsx("tbody", { children: filteredFiles == null ? void 0 : filteredFiles.map((file) => /* @__PURE__ */ jsxs("tr", { className: "h-10", children: [
+              " ",
+              /* @__PURE__ */ jsx("td", { className: "py-2 px-2 border-b text-center w-40 truncate", children: /* @__PURE__ */ jsx(
+                "a",
+                {
+                  href: `/dash/id/files/${file.id}`,
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                  className: "text-blue-500 hover:text-black",
+                  children: file.title
+                }
+              ) }),
+              /* @__PURE__ */ jsx("td", { className: "py-2 px-2 border-b text-center w-64", children: /* @__PURE__ */ jsx("span", { className: "line-clamp-1", children: file.description }) }),
+              /* @__PURE__ */ jsx("td", { className: "py-2 px-2 border-b text-center w-36 truncate", children: new Date(file.upload_date).toLocaleDateString() }),
+              /* @__PURE__ */ jsxs("td", { className: "py-2 px-2 border-b text-center w-32 truncate", children: [
+                file.average_rating.toFixed(1),
+                " ★"
+              ] })
+            ] }, file.id)) })
+          ] }) })
+        ]
+      }
+    ),
+    /* @__PURE__ */ jsx(
+      AdvancedSearchModal,
+      {
+        tags,
+        selectedTags,
+        onSelectTag: handleSelectTag,
+        isOpen: isModalOpen,
+        onClose: () => setIsModalOpen(false)
+      }
+    )
+  ] });
 };
 const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
@@ -340,9 +500,13 @@ const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   loader: loader$4
 }, Symbol.toStringTag, { value: "Module" }));
 let loader$3 = async ({ request }) => {
-  return await authenticator.isAuthenticated(request, {
+  const user = await authenticator.isAuthenticated(request, {
     failureRedirect: "/sign-in"
   });
+  const client = await pool.connect();
+  const result = await client.query("SELECT * FROM file_tags");
+  const tags = result.rows;
+  return json({ user, tags });
 };
 const action$5 = async ({ request }) => {
   var _a, _b;
@@ -351,12 +515,13 @@ const action$5 = async ({ request }) => {
     const title = (_a = formData.get("title")) == null ? void 0 : _a.toString();
     const description = (_b = formData.get("description")) == null ? void 0 : _b.toString();
     const file = formData.get("file");
-    if (!file || !title) {
+    const tags = formData.getAll("tags").map((tag) => tag.toString());
+    if (!file || !title || tags.length === 0) {
       throw new Error("Missing required fields");
     }
     const { id: uploaderId, university_id: universityId } = await authenticator.isAuthenticated(request);
     const accountName = "uninetfilestorage";
-    const sasToken = "sv=2022-11-02&ss=bfqt&srt=o&sp=rwdlacupiytfx&se=2025-11-19T01:04:20Z&st=2024-11-18T17:04:20Z&spr=https&sig=W8xjgWJg%2B1iglBBwGFZ2Ch3ztceukLpha%2BLmYc4V%2Fdc%3D";
+    const sasToken = "sp=racwdli&st=2025-02-25T14:48:01Z&se=2026-06-15T22:48:01Z&sip=0.0.0.0-255.255.255.255&sv=2022-11-02&sr=c&sig=5nKLpwpwwlXWw72EgaXUV%2BBp7NfDPgkjOZXrvllT76s%3D";
     const containerName = "blobby";
     const blobServiceClient = new BlobServiceClient(
       `https://${accountName}.blob.core.windows.net?${sasToken}`
@@ -373,6 +538,34 @@ const action$5 = async ({ request }) => {
     `;
     const values = [uploaderId, universityId, title, description, fileUrl];
     await pool.query(query, values);
+    const tagQuery = `
+      INSERT INTO file_tag_assignments (file_id, tag_id, relevance_score)
+      VALUES ($1, $2, $3)
+    `;
+    const fileQuery = `
+      SELECT id FROM files WHERE file_url = $1
+    `;
+    const fileValues = [fileUrl];
+    const fileResult = await pool.query(fileQuery, fileValues);
+    const fileId = fileResult.rows[0].id;
+    for (const tag of tags) {
+      const tag_id_query = `
+      SELECT id FROM file_tags WHERE name = $1
+    `;
+      const tag_id = await pool.query(tag_id_query, [tag]);
+      if (tag_id.rows.length === 0) {
+        const new_tag_query = `
+          INSERT INTO file_tags (name) VALUES ($1)
+          RETURNING id
+        `;
+        const new_tag_values = [tag];
+        const new_tag_result = await pool.query(new_tag_query, new_tag_values);
+        tag_id.rows.push(new_tag_result.rows[0]);
+      }
+      console.log(tag_id);
+      const tagQueryValues = [fileId, tag_id.rows[0].id, 1];
+      await pool.query(tagQuery, tagQueryValues);
+    }
     return json({ message: "File uploaded and metadata saved successfully" });
   } catch (error) {
     console.error("Error:", error);
@@ -383,13 +576,15 @@ const action$5 = async ({ request }) => {
   }
 };
 function StudyMaterial() {
-  useLoaderData();
+  const { user, tags } = useLoaderData();
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
-    description: ""
+    description: "",
+    tags: []
   });
+  const [newTag, setNewTag] = useState("");
   const handleFileUpload = (event) => {
     if (event.target.files) {
       setFiles([...files, ...Array.from(event.target.files)]);
@@ -398,6 +593,33 @@ function StudyMaterial() {
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+  const handleTagChange = (event) => {
+    const selectedTag = event.target.value;
+    if (selectedTag && !formData.tags.includes(selectedTag)) {
+      setFormData((prevData) => ({
+        ...prevData,
+        tags: [...prevData.tags, selectedTag]
+      }));
+    }
+  };
+  const handleNewTagChange = (event) => {
+    setNewTag(event.target.value);
+  };
+  const addNewTag = () => {
+    if (newTag && !formData.tags.includes(newTag)) {
+      setFormData((prevData) => ({
+        ...prevData,
+        tags: [...prevData.tags, newTag]
+      }));
+      setNewTag("");
+    }
+  };
+  const removeTag = (tagToRemove) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      tags: prevData.tags.filter((tag) => tag !== tagToRemove)
+    }));
   };
   const [isVisible, setIsVisible] = useState(false);
   useEffect(() => {
@@ -411,6 +633,7 @@ function StudyMaterial() {
       const formDataToSend = new FormData();
       formDataToSend.append("title", formData.title);
       formDataToSend.append("description", formData.description);
+      formData.tags.forEach((tag) => formDataToSend.append("tags", tag));
       files.forEach((file) => formDataToSend.append("file", file));
       const response = await fetch("", {
         method: "POST",
@@ -436,111 +659,177 @@ function StudyMaterial() {
       className: `flex flex-col gap-6 bg-gray-50 bg-opacity-90 rounded-3xl shadow-2xl p-8 w-full transition-opacity duration-700 ${isVisible ? "opacity-100" : "opacity-0"}`,
       children: [
         /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between", children: /* @__PURE__ */ jsx("h1", { className: "text-3xl font-bold text-gray-800", children: "Study Material" }) }),
-        /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "bg-white rounded-2xl p-6 shadow-md", children: [
-          /* @__PURE__ */ jsxs("div", { className: "mb-6", children: [
-            /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium text-gray-700", children: "Title" }),
-            /* @__PURE__ */ jsx(
-              "input",
-              {
-                type: "text",
-                name: "title",
-                value: formData.title,
-                onChange: handleInputChange,
-                required: true,
-                className: "block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3"
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxs("div", { className: "mb-6", children: [
-            /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium text-gray-700", children: "Description" }),
-            /* @__PURE__ */ jsx(
-              "textarea",
-              {
-                name: "description",
-                value: formData.description,
-                onChange: handleInputChange,
-                className: "block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3"
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxs("div", { className: "mb-6", children: [
-            /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium text-gray-700", children: "Upload Files" }),
-            /* @__PURE__ */ jsx(
-              "input",
-              {
-                type: "file",
-                multiple: true,
-                accept: "image/*,.pdf",
-                onChange: handleFileUpload,
-                required: true,
-                className: "block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3"
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsx(
-            "button",
-            {
-              type: "submit",
-              disabled: uploading,
-              className: `w-full flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-all duration-200 
-            ${uploading ? "bg-gray-400 cursor-not-allowed text-gray-200" : "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl"}`,
-              children: uploading ? /* @__PURE__ */ jsxs(Fragment, { children: [
-                /* @__PURE__ */ jsxs(
-                  "svg",
+        /* @__PURE__ */ jsxs(
+          "form",
+          {
+            onSubmit: handleSubmit,
+            className: "bg-white rounded-2xl p-6 shadow-md",
+            children: [
+              /* @__PURE__ */ jsxs("div", { className: "mb-6", children: [
+                /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium text-gray-700", children: "Title" }),
+                /* @__PURE__ */ jsx(
+                  "input",
                   {
-                    className: "animate-spin h-5 w-5",
-                    xmlns: "http://www.w3.org/2000/svg",
-                    fill: "none",
-                    viewBox: "0 0 24 24",
+                    type: "text",
+                    name: "title",
+                    value: formData.title,
+                    onChange: handleInputChange,
+                    required: true,
+                    className: "block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3"
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "mb-6", children: [
+                /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium text-gray-700", children: "Description" }),
+                /* @__PURE__ */ jsx(
+                  "textarea",
+                  {
+                    name: "description",
+                    value: formData.description,
+                    onChange: handleInputChange,
+                    className: "block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3"
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "mb-6", children: [
+                /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium text-gray-700", children: "Tag" }),
+                /* @__PURE__ */ jsxs("div", { className: "flex gap-2", children: [
+                  /* @__PURE__ */ jsxs(
+                    "select",
+                    {
+                      name: "tag",
+                      value: "",
+                      onChange: handleTagChange,
+                      className: "block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3",
+                      children: [
+                        /* @__PURE__ */ jsx("option", { value: "", children: "Select a tag" }),
+                        tags.map((tag) => /* @__PURE__ */ jsx("option", { value: tag.name, children: tag.name }, tag.id))
+                      ]
+                    }
+                  ),
+                  /* @__PURE__ */ jsx(
+                    "input",
+                    {
+                      type: "text",
+                      value: newTag,
+                      onChange: handleNewTagChange,
+                      placeholder: "New tag name",
+                      className: "block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3"
+                    }
+                  ),
+                  /* @__PURE__ */ jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: addNewTag,
+                      className: "border border-black bg-white text-black hover:bg-black hover:text-white transition px-4 py-2 rounded-lg",
+                      children: "Add"
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "mb-6", children: [
+                /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium text-gray-700", children: "Selected Tags" }),
+                /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-2", children: formData.tags.map((tag) => /* @__PURE__ */ jsxs(
+                  "div",
+                  {
+                    className: "flex items-center bg-gray-200 text-gray-700 px-3 py-1 rounded-full",
                     children: [
+                      /* @__PURE__ */ jsx("span", { children: tag }),
                       /* @__PURE__ */ jsx(
-                        "circle",
+                        "button",
                         {
-                          className: "opacity-25",
-                          cx: "12",
-                          cy: "12",
-                          r: "10",
-                          stroke: "currentColor",
-                          strokeWidth: "4"
-                        }
-                      ),
-                      /* @__PURE__ */ jsx(
-                        "path",
-                        {
-                          className: "opacity-75",
-                          fill: "currentColor",
-                          d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          type: "button",
+                          onClick: () => removeTag(tag),
+                          className: "ml-2 text-gray-500 hover:text-gray-700",
+                          children: "×"
                         }
                       )
                     ]
-                  }
-                ),
-                /* @__PURE__ */ jsx("span", { children: "Uploading..." })
-              ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
+                  },
+                  tag
+                )) })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "mb-6", children: [
+                /* @__PURE__ */ jsx("label", { className: "block mb-2 text-sm font-medium text-gray-700", children: "Upload Files" }),
                 /* @__PURE__ */ jsx(
-                  "svg",
+                  "input",
                   {
-                    className: "h-5 w-5",
-                    fill: "none",
-                    stroke: "currentColor",
-                    viewBox: "0 0 24 24",
-                    xmlns: "http://www.w3.org/2000/svg",
-                    children: /* @__PURE__ */ jsx(
-                      "path",
-                      {
-                        strokeLinecap: "round",
-                        strokeLinejoin: "round",
-                        strokeWidth: "2",
-                        d: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                      }
-                    )
+                    type: "file",
+                    multiple: true,
+                    accept: "image/*,.pdf",
+                    onChange: handleFileUpload,
+                    required: true,
+                    className: "block w-full text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 p-3"
                   }
-                ),
-                /* @__PURE__ */ jsx("span", { children: "Upload" })
-              ] })
-            }
-          )
-        ] })
+                )
+              ] }),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  type: "submit",
+                  disabled: uploading,
+                  className: `w-full flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-all duration-200 
+            ${uploading ? "bg-gray-400 cursor-not-allowed text-gray-200" : "border border-black bg-white text-black hover:bg-black hover:text-white transition"}`,
+                  children: uploading ? /* @__PURE__ */ jsxs(Fragment, { children: [
+                    /* @__PURE__ */ jsxs(
+                      "svg",
+                      {
+                        className: "animate-spin h-5 w-5",
+                        xmlns: "http://www.w3.org/2000/svg",
+                        fill: "none",
+                        viewBox: "0 0 24 24",
+                        children: [
+                          /* @__PURE__ */ jsx(
+                            "circle",
+                            {
+                              className: "opacity-25",
+                              cx: "12",
+                              cy: "12",
+                              r: "10",
+                              stroke: "currentColor",
+                              strokeWidth: "4"
+                            }
+                          ),
+                          /* @__PURE__ */ jsx(
+                            "path",
+                            {
+                              className: "opacity-75",
+                              fill: "currentColor",
+                              d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            }
+                          )
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ jsx("span", { children: "Uploading..." })
+                  ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
+                    /* @__PURE__ */ jsx(
+                      "svg",
+                      {
+                        className: "h-5 w-5",
+                        fill: "none",
+                        stroke: "currentColor",
+                        viewBox: "0 0 24 24",
+                        xmlns: "http://www.w3.org/2000/svg",
+                        children: /* @__PURE__ */ jsx(
+                          "path",
+                          {
+                            strokeLinecap: "round",
+                            strokeLinejoin: "round",
+                            strokeWidth: "2",
+                            d: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                          }
+                        )
+                      }
+                    ),
+                    /* @__PURE__ */ jsx("span", { children: "Upload" })
+                  ] })
+                }
+              )
+            ]
+          }
+        )
       ]
     }
   ) });
@@ -565,7 +854,8 @@ async function loader$2({ params }) {
     description: result.rows[0].description,
     uploadedBy: result1.rows[0].name,
     uploadDate: result.rows[0].upload_date,
-    downloadUrl: result.rows[0].file_url
+    downloadUrl: result.rows[0].file_url,
+    tags: []
   };
   const result2 = await client.query(
     "SELECT ratings.rater_id, ratings.rating, ratings.comment, ratings.created_at, users.name as rater_name FROM ratings JOIN users ON ratings.rater_id = users.id WHERE ratings.file_id = $1",
@@ -576,6 +866,14 @@ async function loader$2({ params }) {
     user: row.rater_name,
     comment: row.comment,
     rating: row.rating
+  }));
+  const result3 = await client.query(
+    "SELECT file_tags.name, file_tag_assignments.relevance_score FROM file_tag_assignments JOIN file_tags ON file_tag_assignments.tag_id = file_tags.id WHERE file_tag_assignments.file_id = $1",
+    [params.fileid]
+  );
+  fileDetails.tags = result3.rows.map((row) => ({
+    name: row.name,
+    relevanceScore: row.relevance_score
   }));
   const genAI = new GoogleGenerativeAI(
     "AIzaSyAkBta4Gql98eHyenjI92zd4I-a_va11Fg"
@@ -613,7 +911,7 @@ async function action$4({ request, params }) {
   console.log(formData.get("rating"));
   console.log(userId);
   const client = await pool.connect();
-  client.query(
+  await client.query(
     "INSERT INTO ratings (rater_id, file_id, rating, comment) VALUES ($1, $2, $3, $4)",
     [userId, params.fileid, formData.get("rating"), formData.get("comment")]
   );
@@ -622,20 +920,46 @@ async function action$4({ request, params }) {
     [params.fileid]
   );
   console.log(result.rows[0].average_rating);
-  client.query("UPDATE files SET average_rating = $1 WHERE id = $2", [
+  await client.query("UPDATE files SET average_rating = $1 WHERE id = $2", [
     result.rows[0].average_rating,
     params.fileid
   ]);
+  const tagRatings = formData.getAll("tagRating").map((rating) => JSON.parse(rating));
+  for (const { tagName, rating } of tagRatings) {
+    const tagResult = await client.query(
+      `
+      SELECT file_tags.id, file_tag_assignments.relevance_score 
+      FROM file_tags
+      JOIN file_tag_assignments ON file_tags.id = file_tag_assignments.tag_id
+      WHERE file_tags.name = $1;
+      `,
+      [tagName]
+    );
+    const tagId = tagResult.rows[0].id;
+    const currentRelevanceScore = tagResult.rows[0].relevance_score;
+    const newRelevanceScore = (currentRelevanceScore + rating) / 2;
+    await client.query(
+      "UPDATE file_tag_assignments SET relevance_score = $1 WHERE file_id = $2 AND tag_id = $3",
+      [newRelevanceScore, params.fileid, tagId]
+    );
+  }
   return json({ success: true });
 }
 function Dashboard$1() {
   const { fileDetails, comments, summary } = useLoaderData();
   const [rating, setRating] = useState(0);
+  const [tagRatings, setTagRatings] = useState({});
+  const handleTagRatingChange = (tagName, rating2) => {
+    setTagRatings((prevRatings) => ({
+      ...prevRatings,
+      [tagName]: rating2
+    }));
+  };
   return /* @__PURE__ */ jsxs("div", { className: "p-6", children: [
     /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold mb-6", children: "File Details" }),
     /* @__PURE__ */ jsxs("div", { className: "bg-white p-4 rounded-lg shadow mb-6", children: [
-      /* @__PURE__ */ jsx("h2", { className: "text-5xl mb-2", children: /* @__PURE__ */ jsx("b", { children: fileDetails.name }) }),
-      /* @__PURE__ */ jsx("h2", { className: "text-2xl mb-2", children: fileDetails.description }),
+      /* @__PURE__ */ jsx("h2", { className: "text-3xl mb-2", children: /* @__PURE__ */ jsx("b", { children: fileDetails.name }) }),
+      /* @__PURE__ */ jsx("p", { className: "mb-2", children: fileDetails.description }),
       /* @__PURE__ */ jsxs("p", { className: "mb-1", children: [
         /* @__PURE__ */ jsx("b", { children: "Uploaded by:" }),
         " ",
@@ -645,6 +969,22 @@ function Dashboard$1() {
         /* @__PURE__ */ jsx("b", { children: "Date:" }),
         " ",
         fileDetails.uploadDate
+      ] }),
+      /* @__PURE__ */ jsxs("p", { className: "mb-1", children: [
+        /* @__PURE__ */ jsx("b", { children: "Tags:" }),
+        fileDetails.tags.map((tag) => /* @__PURE__ */ jsxs(
+          "span",
+          {
+            className: "bg-gray-200 m-1 text-gray-700 px-3 py-1 rounded-full",
+            children: [
+              tag.name,
+              " (",
+              tag.relevanceScore,
+              " ★)"
+            ]
+          },
+          tag.name
+        ))
       ] }),
       /* @__PURE__ */ jsxs("p", { className: "mb-1", children: [
         /* @__PURE__ */ jsx("b", { children: "AI File Sentiment Analysis:" }),
@@ -690,6 +1030,26 @@ function Dashboard$1() {
           star
         )) })
       ] }),
+      /* @__PURE__ */ jsx("hr", {}),
+      /* @__PURE__ */ jsx("br", {}),
+      fileDetails.tags.map((tag) => /* @__PURE__ */ jsxs("div", { className: "mb-2 flex items-center", children: [
+        /* @__PURE__ */ jsxs("span", { className: "bg-gray-200 mb-1 text-gray-700 px-3 py-1 rounded-full", children: [
+          tag.name,
+          " (",
+          tag.relevanceScore,
+          " ★)"
+        ] }),
+        /* @__PURE__ */ jsx("div", { className: "flex gap-2 ml-2 mt-1", children: [0, 0.25, 0.5, 0.75, 1].map((score) => /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            onClick: () => handleTagRatingChange(tag.name, score),
+            className: `text-xl ${tagRatings[tag.name] >= score ? "text-black-400" : "text-gray-300"}`,
+            children: "★"
+          },
+          score
+        )) })
+      ] }, tag.name)),
       /* @__PURE__ */ jsx("input", { type: "hidden", name: "rating", value: rating }),
       /* @__PURE__ */ jsx(
         "textarea",
@@ -700,6 +1060,18 @@ function Dashboard$1() {
           rows: 3
         }
       ),
+      fileDetails.tags.map((tag) => /* @__PURE__ */ jsx(
+        "input",
+        {
+          type: "hidden",
+          name: "tagRating",
+          value: JSON.stringify({
+            tagName: tag.name,
+            rating: tagRatings[tag.name] || 0
+          })
+        },
+        tag.name
+      )),
       /* @__PURE__ */ jsx(
         "button",
         {
@@ -757,7 +1129,7 @@ const action$3 = async ({ request }) => {
 function SignUpForm$1() {
   const actionData = useActionData();
   useState(null);
-  return /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation", children: /* @__PURE__ */ jsx("div", { className: "flex bg-gray-100 bg-opacity-80 rounded-3xl shadow-lg p-8 max-w-xl w-full", children: /* @__PURE__ */ jsx("div", { className: "flex justify-center p-10", children: /* @__PURE__ */ jsxs(
+  return /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center min-h-screen backdrop-blur-3xl", children: /* @__PURE__ */ jsx("div", { className: "flex bg-gray-100 bg-opacity-80 rounded-3xl shadow-lg p-8 max-w-xl w-full", children: /* @__PURE__ */ jsx("div", { className: "flex justify-center p-10", children: /* @__PURE__ */ jsxs(
     Form,
     {
       encType: "multipart/form-data",
@@ -1089,7 +1461,7 @@ function SignUpForm() {
   var _a;
   const loaderData = useLoaderData();
   const actionData = useActionData();
-  return /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center min-h-screen backdrop-blur-3xl bg-gradient-animation", children: /* @__PURE__ */ jsx("div", { className: "flex bg-gray-100 bg-opacity-80 rounded-3xl shadow-lg p-8 max-w-xl w-full", children: /* @__PURE__ */ jsx("div", { className: "flex justify-center p-10", children: /* @__PURE__ */ jsxs(Form, { method: "post", className: "w-full max-w-lg font-sans", children: [
+  return /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center min-h-screen backdrop-blur-3xl", children: /* @__PURE__ */ jsx("div", { className: "flex bg-gray-100 bg-opacity-80 rounded-3xl shadow-lg p-8 max-w-xl w-full", children: /* @__PURE__ */ jsx("div", { className: "flex justify-center p-10", children: /* @__PURE__ */ jsxs(Form, { method: "post", className: "w-full max-w-lg font-sans", children: [
     /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap -mx-3 mb-6", children: [
       /* @__PURE__ */ jsxs("div", { className: "w-full md:w-1/2 px-3 mb-6 md:mb-0", children: [
         /* @__PURE__ */ jsx(
@@ -2134,7 +2506,7 @@ const route9 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   CatchBoundary,
   default: App
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-B1o9-F3e.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-DF8tPiFN.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/root-D-m3Nspr.css"] }, "routes/dash._student.$id.community-operated": { "id": "routes/dash._student.$id.community-operated", "parentId": "routes/dash._student.$id", "path": "community-operated", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.community-operated-Broom0Zp.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/dash._student.$id.upload-material": { "id": "routes/dash._student.$id.upload-material", "parentId": "routes/dash._student.$id", "path": "upload-material", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.upload-material-BLCwlACz.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/dash._student.$id.files.$fileid": { "id": "routes/dash._student.$id.files.$fileid", "parentId": "routes/dash._student.$id", "path": "files/:fileid", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.files._fileid-DqHfVmiz.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/_auth.sign-up-college": { "id": "routes/_auth.sign-up-college", "parentId": "root", "path": "sign-up-college", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-college-BdJG3vxI.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-up-student": { "id": "routes/_auth.sign-up-student", "parentId": "root", "path": "sign-up-student", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-student-kjENY8XE.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/dash._student.$id": { "id": "routes/dash._student.$id", "parentId": "root", "path": "dash/:id", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id-6roXdoFR.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": [] }, "routes/_auth.sign-in": { "id": "routes/_auth.sign-in", "parentId": "root", "path": "sign-in", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-in-Df1xKkPD.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/components-J4jkiaDK.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/log-out": { "id": "routes/log-out", "parentId": "root", "path": "log-out", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/log-out-l0sNRNKZ.js", "imports": [], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-C0IQiAhl.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/404": { "id": "routes/404", "parentId": "root", "path": "404", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/404-BWHHjsz2.js", "imports": ["/assets/index-Cd-j0Ewk.js", "/assets/index-DjKJqAo0.js", "/assets/components-J4jkiaDK.js"], "css": [] } }, "url": "/assets/manifest-b6f3a462.js", "version": "b6f3a462" };
+const serverManifest = { "entry": { "module": "/assets/entry.client-hwoGmBrw.js", "imports": ["/assets/index-TckX4F0b.js", "/assets/components-D27kuvza.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/root-Bb1iW255.js", "imports": ["/assets/index-TckX4F0b.js", "/assets/components-D27kuvza.js"], "css": ["/assets/root-Bsx6Kq07.css"] }, "routes/dash._student.$id.community-operated": { "id": "routes/dash._student.$id.community-operated", "parentId": "routes/dash._student.$id", "path": "community-operated", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.community-operated-DltJfZAz.js", "imports": ["/assets/index-TckX4F0b.js", "/assets/components-D27kuvza.js"], "css": ["/assets/dash._student._id-BkwXyobe.css"] }, "routes/dash._student.$id.upload-material": { "id": "routes/dash._student.$id.upload-material", "parentId": "routes/dash._student.$id", "path": "upload-material", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.upload-material-ClN2wPpI.js", "imports": ["/assets/index-TckX4F0b.js", "/assets/components-D27kuvza.js"], "css": [] }, "routes/dash._student.$id.files.$fileid": { "id": "routes/dash._student.$id.files.$fileid", "parentId": "routes/dash._student.$id", "path": "files/:fileid", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id.files._fileid-DdHgpx8C.js", "imports": ["/assets/index-TckX4F0b.js", "/assets/components-D27kuvza.js"], "css": [] }, "routes/_auth.sign-up-college": { "id": "routes/_auth.sign-up-college", "parentId": "root", "path": "sign-up-college", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-college-CutOkbAd.js", "imports": ["/assets/index-TckX4F0b.js", "/assets/components-D27kuvza.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/_auth.sign-up-student": { "id": "routes/_auth.sign-up-student", "parentId": "root", "path": "sign-up-student", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-up-student-CSk8G60Z.js", "imports": ["/assets/index-TckX4F0b.js", "/assets/components-D27kuvza.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/dash._student.$id": { "id": "routes/dash._student.$id", "parentId": "root", "path": "dash/:id", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/dash._student._id-DOm7tw4t.js", "imports": ["/assets/index-TckX4F0b.js", "/assets/components-D27kuvza.js"], "css": [] }, "routes/_auth.sign-in": { "id": "routes/_auth.sign-in", "parentId": "root", "path": "sign-in", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": true, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_auth.sign-in-CJ3tHT15.js", "imports": ["/assets/index-TckX4F0b.js", "/assets/components-D27kuvza.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/log-out": { "id": "routes/log-out", "parentId": "root", "path": "log-out", "index": void 0, "caseSensitive": void 0, "hasAction": true, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/log-out-l0sNRNKZ.js", "imports": [], "css": [] }, "routes/_index": { "id": "routes/_index", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/_index-BseHtYz0.js", "imports": ["/assets/index-TckX4F0b.js", "/assets/index-DjKJqAo0.js"], "css": ["/assets/grad_bg-DXCTpALp.css"] }, "routes/404": { "id": "routes/404", "parentId": "root", "path": "404", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/404-ESjHsLO1.js", "imports": ["/assets/index-TckX4F0b.js", "/assets/index-DjKJqAo0.js", "/assets/components-D27kuvza.js"], "css": [] } }, "url": "/assets/manifest-ad86a76c.js", "version": "ad86a76c" };
 const mode = "production";
 const assetsBuildDirectory = "build/client";
 const basename = "/";

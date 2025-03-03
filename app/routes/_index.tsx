@@ -68,7 +68,7 @@ import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate for navigation
 import HelloText from '~/components/hello';
-import "app/grad_bg.css";
+import "~/Styles/grad_bg.css";
 import NotFound from "./404";
 
 
