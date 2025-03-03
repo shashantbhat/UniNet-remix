@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLoaderData, useParams } from "@remix-run/react";
 import { LoaderFunction, json } from "@remix-run/node";
 import pool from "~/utils/db.server";
 import authenticator from "~/utils/auth.server";
 import DropdownMenu from "~/components/dropDownMenu";
+import AdvancedSearchModal from "~/components/AdvancedSearchModal";
 
 export const loader: LoaderFunction = async ({ request }) => {
   const client = await pool.connect();
@@ -47,10 +48,12 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 const CommunityOperated = () => {
   const { files, tags, fileTagAssignments } = useLoaderData(); // Files, tags, and file-tag assignments data
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { id } = useParams();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
@@ -68,6 +71,19 @@ const CommunityOperated = () => {
     );
   };
 
+  const handleClickOutside = (event: MouseEvent) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      setIsDropdownOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const filteredFiles = files?.filter((file: any) => {
     const fileTags = fileTagAssignments
       .filter((assignment) => assignment.file_id === file.id)
@@ -75,7 +91,8 @@ const CommunityOperated = () => {
 
     return (
       file.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      (selectedTags.length === 0 || selectedTags.every((tagId) => fileTags.includes(tagId)))
+      (selectedTags.length === 0 ||
+        selectedTags.every((tagId) => fileTags.includes(tagId)))
     );
   });
 
@@ -113,22 +130,20 @@ const CommunityOperated = () => {
           <div className="flex items-center gap-2">
             <button
               className="flex items-center gap-2 border border-black bg-white text-black hover:bg-black hover:text-white py-2.5 px-4 rounded-xl text-sm font-medium transition"
-              onClick={() => {
-                window.location.href = `/dash/${id}/upload-material`;
-              }}
+              onClick={() => setIsModalOpen(true)}
             >
               <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                fill="currentColor"
-                viewBox="0 0 256 256"
-              >
-                <path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-40-64a8,8,0,0,1-8,8H136v16a8,8,0,0,1-16,0V160H104a8,8,0,0,1,0-16h16V128a8,8,0,0,1,16,0v16h16A8,8,0,0,1,160,152Z"></path>
-              </svg>
-              <span>Adv Search</span>
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              fill="currentColor"
+              viewBox="0 0 256 256"
+            >
+              <path d="M32,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H40A8,8,0,0,1,32,64Zm8,72h72a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm88,48H40a8,8,0,0,0,0,16h88a8,8,0,0,0,0-16Zm109.66,13.66a8,8,0,0,1-11.32,0L206,177.36A40,40,0,1,1,217.36,166l20.3,20.3A8,8,0,0,1,237.66,197.66ZM184,168a24,24,0,1,0-24-24A24,24,0,0,0,184,168Z"></path>
+            </svg>
+            <span>Adv Search</span>
             </button>
-            <div className="relative flex items-center gap-2 w-1/3 min-w-[400px]">
+            <div ref={dropdownRef} className="relative flex items-center gap-2 w-1/3 min-w-[400px]">
               <input
                 type="text"
                 placeholder="Search files"
@@ -197,6 +212,13 @@ const CommunityOperated = () => {
           </table>
         </div>
       </div>
+      <AdvancedSearchModal
+        tags={tags}
+        selectedTags={selectedTags}
+        onSelectTag={handleSelectTag}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 };
