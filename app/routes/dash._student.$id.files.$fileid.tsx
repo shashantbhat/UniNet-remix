@@ -9,7 +9,9 @@ import { useState } from "react";
 import DashboardLayout from "~/components/dashboard_layout";
 import pool from "~/utils/db.server";
 import authenticator from "~/utils/auth.server";
-import { GoogleGenerativeAI } from "@google/generative-ai"; // Use import instead of require
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import {border} from "@mui/system";
+import {index} from "@zxing/text-encoding/es2015/encoding/indexes"; // Use import instead of require
 
 type FileDetails = {
   name: string;
@@ -17,6 +19,7 @@ type FileDetails = {
   uploadedBy: string;
   uploadDate: string;
   downloadUrl: string;
+  averageRating: string;
   tags: { name: string; relevanceScore: number }[];
 };
 
@@ -43,6 +46,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
     uploadedBy: result1.rows[0].name,
     uploadDate: result.rows[0].upload_date,
     downloadUrl: result.rows[0].file_url,
+    averageRating: result.rows[0].average_rating,
     tags: [],
   };
 
@@ -196,7 +200,7 @@ export default function Dashboard() {
               key={tag.name}
               className="bg-gray-200 m-1 text-gray-700 px-3 py-1 rounded-full"
             >
-              {tag.name} ({tag.relevanceScore} ★)
+              {tag.name} ({tag.relevanceScore.toFixed(1)} ★)
             </span>
           ))}
           {/* {fileDetails.tags.map((tag) => (
@@ -241,9 +245,16 @@ export default function Dashboard() {
 
       {/* Previous Comments */}
       <div className="bg-white p-4 rounded-lg shadow">
-        <h2 className="text-xl mb-4">Previous Comments</h2>
+        <div className={"flex text-xl mb-4 justify-between"}>
+          <h2>
+            Previous Comments
+          </h2>
+          <h2>
+            Rating: {fileDetails.averageRating.toFixed(1)} ★
+          </h2>
+        </div>
         {comments.map((comment) => (
-          <div key={comment.id} className="border-b py-3">
+          <div key={comment.id} className={"py-3 border-b last:border-0"}>
             <div className="flex items-center justify-between">
               <strong>{comment.user}</strong>
               <span className="text-black-400">
@@ -281,7 +292,7 @@ export default function Dashboard() {
         {fileDetails.tags.map((tag) => (
           <div key={tag.name} className="mb-2 flex items-center">
             <span className="bg-gray-200 mb-1 text-gray-700 px-3 py-1 rounded-full">
-              {tag.name} ({tag.relevanceScore} ★)
+              {tag.name} ({tag.relevanceScore.toFixed(1)} ★)
             </span>
             <div className="flex gap-2 ml-2 mt-1">
               {[0, 0.25, 0.5, 0.75, 1].map((score) => (

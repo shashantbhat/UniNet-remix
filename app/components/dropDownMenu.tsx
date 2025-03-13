@@ -16,7 +16,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
       <div className="flex items-center px-2 pt-4">
         <span className="font-medium">Search using tags:</span>
       </div>
-      <ul className="flex flex-wrap py-2">
+      <ul className="flex flex-wrap py-2 px-2">
         {tags.map((tag) => (
           <li
             key={tag.id}

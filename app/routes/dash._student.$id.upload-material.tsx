@@ -209,7 +209,7 @@ export default function StudyMaterial() {
   return (
     <div className="flex flex-col h-screen p-4">
       <div
-        className={`flex flex-col gap-6 bg-gray-50 bg-opacity-90 rounded-3xl shadow-2xl p-8 w-full transition-opacity duration-700 ${
+        className={`flex flex-col gap-6 bg-gray-50 bg-opacity-90 rounded-3xl shadow-lg p-8 w-full transition-opacity duration-700 ${
           isVisible ? "opacity-100" : "opacity-0"
         }`}
       >
