@@ -5,12 +5,14 @@ interface AdvancedSearchModalProps {
   tags: { id: number; name: string }[];
   isOpen: boolean;
   onClose: () => void;
+  onSearch: (selectedTags: number[], relevanceScores: { [key: number]: number }) => void;
 }
 
 const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
   tags,
   isOpen,
   onClose,
+  onSearch,
 }) => {
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
   const [relevanceScores, setRelevanceScores] = useState<{
@@ -32,6 +34,11 @@ const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
     }));
   };
 
+  const handleSearch = () => {
+    onSearch(selectedTags, relevanceScores);
+    onClose(); // Close the modal after search
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -42,7 +49,6 @@ const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
         <h1 className="text-xl font-semibold mb-4 pt-4">
           Enter Prompt (AI Tag Analysis)
         </h1>
-        {/* form with a text field */}
         <form>
           <div className="flex items-center mb-2 w-full">
             <input
@@ -69,14 +75,13 @@ const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
             ))}
           </div>
           <hr />
-          {/* Display selected tags with relevance score input */}
           <div className="mt-4">
             {selectedTags.map((tagId) => {
               const tag = tags.find((t) => t.id === tagId);
               return (
                 <div key={tagId} className="flex items-center mb-2">
                   <div className="w-1/2">
-                    <span className=" mr-2 px-3 py-1 bg-gray-200 cursor-pointer rounded-full">
+                    <span className="mr-2 px-3 py-1 bg-gray-200 cursor-pointer rounded-full">
                       {tag?.name}
                     </span>
                   </div>
@@ -102,10 +107,17 @@ const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
           <div className="flex justify-end mt-4">
             <button
               type="button"
-              className="border border-black bg-white text-black px-4 py-2 rounded-xl hover:bg-black hover:text-white transition"
+              className="border border-black bg-white text-black px-4 py-2 rounded-xl hover:bg-black hover:text-white transition mr-2"
               onClick={onClose}
             >
               Close
+            </button>
+            <button
+              type="button"
+              className="border border-black bg-black text-white px-4 py-2 rounded-xl hover:bg-white hover:text-black transition"
+              onClick={handleSearch}
+            >
+              Search
             </button>
           </div>
         </form>

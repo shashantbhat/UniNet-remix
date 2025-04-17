@@ -47,66 +47,34 @@ export const loader: LoaderFunction = async ({ request }) => {
 };
 
 const CommunityOperated = () => {
-  const { files, tags, fileTagAssignments } = useLoaderData(); // Files, tags, and file-tag assignments data
+  const { files, tags, fileTagAssignments } = useLoaderData();
   const [searchQuery, setSearchQuery] = useState("");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { id } = useParams();
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [filteredFiles, setFilteredFiles] = useState(files);
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value);
+  const handleSearch = (selectedTags: number[], relevanceScores: { [key: number]: number }) => {
+    // Filter files based on selected tags and relevance scores
+    const filtered = files.filter((file) => {
+      const fileTags = fileTagAssignments.filter(
+        (assignment) => assignment.file_id === file.id
+      );
+
+      // Check if all selected tags meet the relevance score criteria
+      return selectedTags.every((tagId) => {
+        const tagAssignment = fileTags.find((assignment) => assignment.tag_id === tagId);
+        return tagAssignment && tagAssignment.relevance_score >= relevanceScores[tagId];
+      });
+    });
+
+    setFilteredFiles(filtered);
+    setIsModalOpen(false); // Close the modal after search
   };
-
-  const handleSearchClick = () => {
-    setIsDropdownOpen(!isDropdownOpen);
-  };
-
-  const handleSelectTag = (tagId: number) => {
-    setSelectedTags((prevSelectedTags) =>
-      prevSelectedTags.includes(tagId)
-        ? prevSelectedTags.filter((id) => id !== tagId)
-        : [...prevSelectedTags, tagId]
-    );
-  };
-
-  const handleClickOutside = (event: MouseEvent) => {
-    if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-      setIsDropdownOpen(false);
-    }
-  };
-
-  useEffect(() => {
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const filteredFiles = files?.filter((file: any) => {
-    const fileTags = fileTagAssignments
-      .filter((assignment) => assignment.file_id === file.id)
-      .map((assignment) => assignment.tag_id);
-
-    return (
-      file.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      (selectedTags.length === 0 ||
-        selectedTags.every((tagId) => fileTags.includes(tagId)))
-    );
-  });
-
-  const [isVisible, setIsVisible] = useState(false);
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
 
   return (
     <div className="flex flex-col h-screen p-4">
       <div
-        className={`flex flex-col gap-4 bg-gray-100 bg-opacity-75 rounded-3xl shadow-lg p-6 w-full transition-opacity duration-1000 ${
-          isVisible ? "opacity-100" : "opacity-0"
-        }`}
+        className={`flex flex-col gap-4 bg-gray-100 bg-opacity-75 rounded-3xl shadow-lg p-6 w-full transition-opacity duration-1000`}
       >
         <div className="flex justify-between items-center w-full">
           <button
@@ -133,41 +101,22 @@ const CommunityOperated = () => {
               onClick={() => setIsModalOpen(true)}
             >
               <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              fill="currentColor"
-              viewBox="0 0 256 256"
-            >
-              <path d="M32,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H40A8,8,0,0,1,32,64Zm8,72h72a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm88,48H40a8,8,0,0,0,0,16h88a8,8,0,0,0,0-16Zm109.66,13.66a8,8,0,0,1-11.32,0L206,177.36A40,40,0,1,1,217.36,166l20.3,20.3A8,8,0,0,1,237.66,197.66ZM184,168a24,24,0,1,0-24-24A24,24,0,0,0,184,168Z"></path>
-            </svg>
-            <span>Adv Search</span>
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                fill="currentColor"
+                viewBox="0 0 256 256"
+              >
+                <path d="M32,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H40A8,8,0,0,1,32,64Zm8,72h72a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm88,48H40a8,8,0,0,0,0,16h88a8,8,0,0,0,0-16Zm109.66,13.66a8,8,0,0,1-11.32,0L206,177.36A40,40,0,1,1,217.36,166l20.3,20.3A8,8,0,0,1,237.66,197.66ZM184,168a24,24,0,1,0-24-24A24,24,0,0,0,184,168Z"></path>
+              </svg>
+              <span>Adv Search</span>
             </button>
-            <div ref={dropdownRef} className="relative flex items-center gap-2 w-1/3 min-w-[400px]">
-              <input
-                type="text"
-                placeholder="Search files"
-                value={searchQuery}
-                onChange={handleSearchChange}
-                onClick={handleSearchClick}
-                className="w-full py-2.5 px-4 rounded-xl text-sm font-medium focus:outline-none focus:ring-1 focus:ring-black transition-all hover:border-black duration-200"
-              />
-              {isDropdownOpen && (
-                <DropdownMenu
-                  tags={tags}
-                  selectedTags={selectedTags}
-                  onSelectTag={handleSelectTag}
-                />
-              )}
-            </div>
           </div>
         </div>
         <div className="flex-1 overflow-auto">
           <table className="min-w-full bg-white table-fixed">
             <thead>
               <tr className="h-12">
-                {" "}
-                {/* Sets uniform row height */}
                 <th className="py-2 px-4 border-b text-center w-40">
                   File Name
                 </th>
@@ -185,8 +134,6 @@ const CommunityOperated = () => {
             <tbody>
               {filteredFiles?.map((file: any) => (
                 <tr key={file.id} className="h-10">
-                  {" "}
-                  {/* Ensures uniform row height */}
                   <td className="py-2 px-2 border-b text-center w-40 truncate">
                     <a
                       href={`/dash/id/files/${file.id}`}
@@ -214,10 +161,9 @@ const CommunityOperated = () => {
       </div>
       <AdvancedSearchModal
         tags={tags}
-        selectedTags={selectedTags}
-        onSelectTag={handleSelectTag}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onSearch={handleSearch}
       />
     </div>
   );
