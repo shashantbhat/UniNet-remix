@@ -48,10 +48,57 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 const CommunityOperated = () => {
   const { files, tags, fileTagAssignments } = useLoaderData();
+  const { id } = useParams();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filteredFiles, setFilteredFiles] = useState(files);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const handleSearchClick = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  const handleSelectTag = (tagId: number) => {
+    setSelectedTags((prevSelectedTags) =>
+      prevSelectedTags.includes(tagId)
+        ? prevSelectedTags.filter((id) => id !== tagId)
+        : [...prevSelectedTags, tagId]
+    );
+  };
+
+  const handleClickOutside = (event: MouseEvent) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      setIsDropdownOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    const filtered = files?.filter((file: any) => {
+      const fileTags = fileTagAssignments
+        .filter((assignment) => assignment.file_id === file.id)
+        .map((assignment) => assignment.tag_id);
+
+      return (
+        file.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        (selectedTags.length === 0 ||
+          selectedTags.every((tagId) => fileTags.includes(tagId)))
+      );
+    });
+    setFilteredFiles(filtered);
+  }, [searchQuery, selectedTags, files, fileTagAssignments]);
 
   const handleSearch = (selectedTags: number[], relevanceScores: { [key: number]: number }) => {
     // Filter files based on selected tags and relevance scores
@@ -111,6 +158,23 @@ const CommunityOperated = () => {
               </svg>
               <span>Adv Search</span>
             </button>
+            <div ref={dropdownRef} className="relative flex items-center gap-2 w-1/3 min-w-[400px]">
+              <input
+                type="text"
+                placeholder="Search files"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onClick={handleSearchClick}
+                className="w-full py-2.5 px-4 rounded-xl text-sm font-medium focus:outline-none focus:ring-1 focus:ring-black transition-all hover:border-black duration-200"
+              />
+              {isDropdownOpen && (
+                <DropdownMenu
+                  tags={tags}
+                  selectedTags={selectedTags}
+                  onSelectTag={handleSelectTag}
+                />
+              )}
+            </div>
           </div>
         </div>
         <div className="flex-1 overflow-auto">
