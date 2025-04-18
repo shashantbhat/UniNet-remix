@@ -80,7 +80,7 @@ const CommunityOperated = () => {
           <button
             className="flex items-center gap-2 border border-black bg-white text-black hover:bg-black hover:text-white py-2.5 px-4 rounded-xl text-sm font-medium transition"
             onClick={() => {
-              window.location.href = `/dash/${id}/upload-material`;
+              window.location.href = `/dash/id/upload-material`;
             }}
           >
             <svg
