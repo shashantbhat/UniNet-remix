@@ -101,20 +101,47 @@ const CommunityOperated = () => {
   }, [searchQuery, selectedTags, files, fileTagAssignments]);
 
   const handleSearch = (selectedTags: number[], relevanceScores: { [key: number]: number }) => {
-    // Filter files based on selected tags and relevance scores
-    const filtered = files.filter((file) => {
+    if (selectedTags.length === 0) {
+      setFilteredFiles(files); // If no tags are selected, show all files
+      setIsModalOpen(false);
+      return;
+    }
+
+    // Step 1: Create a query vector based on selected tags and their relevance scores
+    const queryVector: { [key: number]: number } = {};
+    selectedTags.forEach((tagId) => {
+      queryVector[tagId] = relevanceScores[tagId] || 0;
+    });
+
+    // Step 2: Calculate the distance of each file to the query vector
+    const rankedFiles = files.map((file) => {
       const fileTags = fileTagAssignments.filter(
         (assignment) => assignment.file_id === file.id
       );
 
-      // Check if all selected tags meet the relevance score criteria
-      return selectedTags.every((tagId) => {
-        const tagAssignment = fileTags.find((assignment) => assignment.tag_id === tagId);
-        return tagAssignment && tagAssignment.relevance_score >= relevanceScores[tagId];
+      // Create a feature vector for the file
+      const fileVector: { [key: number]: number } = {};
+      fileTags.forEach((assignment) => {
+        fileVector[assignment.tag_id] = assignment.relevance_score;
       });
+
+      // Calculate the Euclidean distance between the file vector and the query vector
+      const distance = Math.sqrt(
+        selectedTags.reduce((sum, tagId) => {
+          const queryValue = queryVector[tagId] || 0;
+          const fileValue = fileVector[tagId] || 0;
+          return sum + Math.pow(queryValue - fileValue, 2);
+        }, 0)
+      );
+
+      return { ...file, distance }; // Attach the distance to the file object
     });
 
-    setFilteredFiles(filtered);
+    // Step 3: Sort files by distance (ascending order)
+    rankedFiles.sort((a, b) => a.distance - b.distance);
+
+    // Step 4: Update the filtered files state
+    setFilteredFiles(rankedFiles);
     setIsModalOpen(false); // Close the modal after search
   };
 
